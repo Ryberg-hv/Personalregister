@@ -552,12 +552,10 @@
 <script>
 /* =========================================================================
    PERSONALREGISTER
-   Fristående app. Data sparas som en JSON-fil i den mapp du väljer via
-   "Välj mapp" (File System Access API). Ingen data sparas i webbläsaren -
-   allt lagras i filen personalregister-data.json i den valda mappen.
-   Stöds Chrome/Edge/Opera ej-mobil. I andra webbläsare och i appen på
-   telefon/iPhone sparas registret i appens eget lagringsutrymme (localStorage)
-   — använd Exportera JSON som säkerhetskopia.
+   Fristående app. Registren sparas alltid krypterade (AES-256-GCM, nyckel
+   från PIN-koden) i appens eget lagringsutrymme på enheten — likadant på
+   PC, Android och iPhone. Inget mappval. Använd Exportera JSON som
+   säkerhetskopia och för att flytta registret mellan enheter.
 
    Grupp 1-6 har fasta platser (befattningar). Befattning och
    befattningsnummer hör till PLATSEN i gruppen, inte till personen -
@@ -708,9 +706,10 @@ const DEFAULT_GROUPS = [
 
 /* ---------- state ---------- */
 let DATA = null;
-let dirHandle = null;
-let fsaSupported = ('showDirectoryPicker' in window);
-let currentFileName = null; // FSA: the .json filename; fallback: the localStorage registry key
+/* mappval (File System Access) är borttaget — allt sparas i appen */
+const dirHandle = null;
+const fsaSupported = false;
+let currentFileName = null; // nyckeln för det öppna registret i appens lagring
 let registerList = []; // [{key, label}] – the set of registers available to switch between
 let view = {name:'setup'}; // setup | home | group | person | overview
 let columnPanelOpen = false;
@@ -975,70 +974,7 @@ function currentRegisterLabel(){
   return r ? r.label : (currentFileName||'');
 }
 
-/* ---- File System Access (folder-based) ---- */
-async function chooseFolder(){
-  try{
-    dirHandle = await window.showDirectoryPicker({mode:'readwrite'});
-  }catch(e){ return; }
-  DATA = null; currentFileName = null; registerList = [];
-  await scanRegisters();
-  if(registerList.length){
-    await loadRegisterFile(registerList[0].key);
-  } else {
-    view = {name:'setup'};
-    renderAll();
-  }
-}
-async function scanRegisters(){
-  registerList = [];
-  if(!dirHandle) return;
-  for await (const entry of dirHandle.values()){
-    if(entry.kind==='file' && /\.json$/i.test(entry.name)){
-      registerList.push({key: entry.name, label: entry.name.replace(/\.json$/i,'')});
-    }
-  }
-  registerList.sort((a,b)=>a.label.localeCompare(b.label,'sv'));
-}
-async function loadRegisterFile(filename){
-  try{
-    const fh = await dirHandle.getFileHandle(filename, {create:false});
-    const file = await fh.getFile();
-    const raw = await file.text();
-    let text;
-    try{ text = await decryptFromStorage(raw, true); }
-    catch(err){
-      alert(`Filen "${filename}" kunde inte låsas upp (${err.message||err}). Den lämnas orörd.`);
-      await scanRegisters(); renderAll(); return;
-    }
-    hydrateData(JSON.parse(text));
-  }catch(e){
-    DATA = defaultData();
-    DATA.title = filename.replace(/\.json$/i,'');
-  }
-  currentFileName = filename;
-  await scanRegisters();
-  await saveToDisk();
-  view = {name:'home'};
-  renderAll();
-}
-async function createFsaRegister(name){
-  await scanRegisters();
-  const base = sanitizeFileBase(name);
-  let filename = base + '.json';
-  let n = 2;
-  while(registerList.some(r=>r.key.toLowerCase()===filename.toLowerCase())){
-    filename = base+' ('+n+').json'; n++;
-  }
-  DATA = defaultData();
-  DATA.title = base;
-  currentFileName = filename;
-  await saveToDisk();
-  await scanRegisters();
-  view = {name:'home'};
-  renderAll();
-}
-
-/* ---- localStorage fallback (browsers without folder access) ---- */
+/* ---- lagring i appen (localStorage) ---- */
 function lsLoadRegistry(){
   try{ return JSON.parse(localStorage.getItem(LS_REGISTRY)) || []; }catch(e){ return []; }
 }
@@ -1096,7 +1032,7 @@ function openNewRegisterModal(){
     <div class="formgrid">
       <div class="field full"><label>Namn på registret</label><input id="nrName" placeholder="t.ex. Pluton Alpha"></div>
     </div>
-    <p style="color:var(--ink-soft);font-size:12px;">${(fsaSupported&&dirHandle) ? 'Sparas som en egen fil i den valda mappen.' : 'Sparas separat i den här webbläsaren. Exportera regelbundet som säkerhetskopia.'}</p>
+    <p style="color:var(--ink-soft);font-size:12px;">Sparas krypterat i appen på den här enheten. Exportera regelbundet som säkerhetskopia.</p>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Avbryt</button>
       <button class="btn primary" onclick="submitNewRegister()">Skapa</button>
@@ -1115,28 +1051,20 @@ async function submitNewRegister(){
   const val = input.value.trim();
   if(!val){ input.focus(); return; }
   closeModal();
-  if(fsaSupported && dirHandle){ await createFsaRegister(val); }
-  else { createLocalRegister(val); }
+  createLocalRegister(val);
 }
 function onRegisterSelect(key){
   if(!key || key===currentFileName) return;
-  if(fsaSupported && dirHandle){ loadRegisterFile(key); }
-  else { loadLocalRegister(key); }
+  loadLocalRegister(key);
 }
 async function deleteCurrentRegister(){
   if(!currentFileName || registerList.length<=1) return;
   if(!confirm(`Ta bort registret "${currentRegisterLabel()}"? Detta går inte att ångra.`)) return;
-  if(fsaSupported && dirHandle){
-    try{ await dirHandle.removeEntry(currentFileName); }catch(e){ alert('Kunde inte ta bort filen.'); return; }
-    await scanRegisters();
-    await loadRegisterFile(registerList[0].key);
-  } else {
-    localStorage.removeItem(LS_PREFIX+currentFileName);
-    const list = lsLoadRegistry().filter(r=>r.key!==currentFileName);
-    lsSaveRegistry(list);
-    registerList = list;
-    loadLocalRegister(list[0].key);
-  }
+  localStorage.removeItem(LS_PREFIX+currentFileName);
+  const list = lsLoadRegistry().filter(r=>r.key!==currentFileName);
+  lsSaveRegistry(list);
+  registerList = list;
+  loadLocalRegister(list[0].key);
 }
 
 let saving = false;
@@ -1145,6 +1073,7 @@ let saving = false;
    aktuella registret vid den tidpunkt den faktiskt körs. */
 let saveChain = Promise.resolve();
 let savePending = false;
+let saveFailedWarned = false;
 function saveToDisk(){
   if(!DATA || !currentFileName) return saveChain;
   if(savePending) return saveChain;
@@ -1157,16 +1086,16 @@ function saveToDisk(){
     if(!data || !vaultKey) return;
     try{
       const payload = await encryptForStorage(JSON.stringify(data));
-      if(fsaSupported && dirHandle){
-        const fh = await dirHandle.getFileHandle(target.file, {create:true});
-        const writable = await fh.createWritable();
-        await writable.write(payload);
-        await writable.close();
-      } else if(!fsaSupported){
-        localStorage.setItem(LS_PREFIX+target.file, payload);
-        localStorage.setItem(LS_ACTIVE, target.file);
+      localStorage.setItem(LS_PREFIX+target.file, payload);
+      localStorage.setItem(LS_ACTIVE, target.file);
+      saveFailedWarned = false;
+    }catch(e){
+      console.error('Kunde inte spara:', e);
+      if(!saveFailedWarned){
+        saveFailedWarned = true;
+        alert('VARNING: Ändringen kunde inte sparas i appen ('+(e.message||e)+'). Gör en säkerhetskopia (Exportera JSON) direkt så att inget går förlorat.');
       }
-    }catch(e){ console.error('Kunde inte spara:', e); }
+    }
   }).finally(()=>{ saving = false; updateStatus(); });
   return saveChain;
 }
@@ -2480,12 +2409,8 @@ function renderTopbar(){
     html += `<button class="btn small" onclick="lockApp()" title="Lås appen">🔒 Lås</button>`;
     html += `<button class="btn small" onclick="startChangePin()">Byt PIN-kod</button>`;
     html += `<span class="status" id="saveStatus">Sparat</span>`;
-    if(fsaSupported){
-      html += `<button class="btn small" onclick="chooseFolder()">Byt mapp</button>`;
-    } else {
-      html += `<button class="btn small" onclick="exportJson()">Exportera JSON</button>`;
-      html += `<label class="btn small" style="margin:0;">Importera<input type="file" accept="application/json" style="display:none" onchange="importJson(this.files[0])"></label>`;
-    }
+    html += `<button class="btn small" onclick="exportJson()">Exportera JSON</button>`;
+    html += `<label class="btn small" style="margin:0;">Importera<input type="file" accept="application/json" style="display:none" onchange="importJson(this.files[0])"></label>`;
   }
   actions.innerHTML = html;
 }
@@ -2539,28 +2464,13 @@ function renderAll(){
 
 /* ---------- setup view ---------- */
 function renderSetup(){
-  if(fsaSupported){
-    if(dirHandle && !DATA){
-      return `<div class="banner setup">
-        <h2>Inga register i den här mappen</h2>
-        <p>Skapa ett nytt register – det sparas som en egen fil i den valda mappen, med det namn du väljer. Du kan skapa flera och växla mellan dem i rullistan i sidhuvudet.</p>
-        <button class="btn primary" onclick="openNewRegisterModal()">Skapa nytt register</button>
-        <div style="margin-top:10px;"><button class="btn" onclick="chooseFolder()">Välj en annan mapp</button></div>
-      </div>`;
-    }
-    return `<div class="banner setup">
-      <h2>Kom igång</h2>
-      <p>Välj den mapp där dina register ska sparas. Varje register sparas som en egen fil i mappen, du döper dem själv, och du kan skapa flera och växla mellan dem. Ingenting sparas i webbläsaren.</p>
-      <button class="btn primary" onclick="chooseFolder()">Välj mapp</button>
-    </div>`;
-  }
   const list = lsLoadRegistry();
   const listHtml = list.length ? `<div style="max-width:440px;margin:0 auto 18px;text-align:left;">
       ${list.map(r=>`<div class="banner info" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="loadLocalRegister('${r.key.replace(/'/g,"\\'")}')"><span>${esc(r.label)}</span><span style="font-size:11px;color:var(--ink-faint);">Öppna →</span></div>`).join('')}
     </div>` : '';
   return `${renderInstallBanner()}<div class="banner setup">
     <h2>Kom igång</h2>
-    <p>Register sparas i appen på den här enheten – du döper dem själv och kan skapa flera. Vill du flytta ett register från en annan enhet: välj <strong>Läs in tidigare fil</strong> (JSON-kopia), eller skapa ett nytt register och använd <strong>Importera personal → Hela plutonen</strong>.</p>
+    <p>Register sparas krypterade i appen på den här enheten – du döper dem själv och kan skapa flera. Vill du flytta ett register från en annan enhet, eller från en mapp som en tidigare version av appen använde: välj <strong>Läs in tidigare fil</strong> (.json-filen), eller skapa ett nytt register och använd <strong>Importera personal → Hela plutonen</strong>.</p>
     ${listHtml}
     <button class="btn primary" onclick="openNewRegisterModal()">Nytt register</button>
     <div style="margin-top:10px;">
@@ -2614,7 +2524,7 @@ function renderInstallBanner(){
 const BACKUP_REMIND_DAYS = 14;
 function renderBackupBanner(){
   /* bara när registret ligger i appen/webbläsaren (telefon, iPhone, webbläsare utan mappstöd) */
-  if(fsaSupported || !DATA || !DATA.persons.length) return '';
+  if(!DATA || !DATA.persons.length) return '';
   const t = lastBackupTime();
   const days = t ? Math.floor((Date.now()-t)/86400000) : null;
   if(days!==null && days < BACKUP_REMIND_DAYS) return '';
@@ -4108,18 +4018,6 @@ async function reencryptLocalRegisters(oldPin){
     try{ localStorage.setItem(LS_PREFIX+r.key, await encryptForStorage(await open(raw))); }
     catch(e){ console.warn('Kunde inte kryptera om', r.key, e); }
   }
-  if(fsaSupported && dirHandle){
-    await scanRegisters();
-    for(const r of registerList){
-      try{
-        const fh = await dirHandle.getFileHandle(r.key, {create:false});
-        const raw = await (await fh.getFile()).text();
-        const text = await open(raw);
-        JSON.parse(text); // bara riktiga register
-        const w = await fh.createWritable(); await w.write(await encryptForStorage(text)); await w.close();
-      }catch(e){ console.warn('Kunde inte kryptera om', r.key, e); }
-    }
-  }
 }
 async function changeVaultPin(newPin){
   const oldPin = currentPin;
@@ -4148,7 +4046,7 @@ function forgotPin(){
   }catch(e){}
   vaultKey = null; vaultSalt = null; currentPin = null; derivedKeyCache.clear();
   DATA = null; currentFileName = null; registerList = [];
-  showLockScreen('create', fsaSupported ? 'Välj en ny PIN-kod. Filer i din mapp som låsts med den gamla koden går inte att öppna.' : 'Välj en ny PIN-kod.');
+  showLockScreen('create', 'Välj en ny PIN-kod.');
 }
 async function lockApp(){
   if(!loadVault()) return;
@@ -4162,10 +4060,6 @@ async function lockApp(){
 }
 /* efter upplåsning: öppna senaste registret igen */
 async function afterUnlock(){
-  if(fsaSupported){
-    if(dirHandle && currentFileName){ await loadRegisterFile(currentFileName); return; }
-    view = {name:'setup'}; renderAll(); return;
-  }
   const registry = lsLoadRegistry();
   registerList = registry;
   const active = currentFileName || localStorage.getItem(LS_ACTIVE);
@@ -4383,7 +4277,7 @@ function init(){
   }
   renderTopbar();
   if(!loadVault()){
-    const hasOld = !fsaSupported && lsLoadRegistry().length>0;
+    const hasOld = lsLoadRegistry().length>0;
     showLockScreen('create', hasOld ? 'Registret ska nu skyddas med en PIN-kod. Välj sex siffror — dina befintliga register krypteras med koden.' : null);
     return;
   }
@@ -4395,7 +4289,7 @@ init();
 if('serviceWorker' in navigator && /^https?:/.test(location.protocol)){
   window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(e=>console.warn('Service worker:', e)); });
 }
-if(!fsaSupported && navigator.storage && navigator.storage.persist){
+if(navigator.storage && navigator.storage.persist){
   navigator.storage.persist().catch(()=>{});
 }
 </script>

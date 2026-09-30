@@ -1,6 +1,6 @@
 /* Service worker för Personalregister.
    Höj VERSION vid varje ny uppladdning så att gamla filer rensas. */
-const VERSION = 'personalregister-v17';
+const VERSION = 'personalregister-v18';
 const CORE = [
   './',
   './index.html',
