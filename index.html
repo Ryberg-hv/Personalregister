@@ -12,9 +12,10 @@
 <meta name="apple-mobile-web-app-title" content="Personalregister">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Allerta+Stencil&display=swap" rel="stylesheet">
+<style>
+  /* Typsnittet ligger i appen — inga anrop till Google Fonts */
+  @font-face{font-family:'Allerta Stencil';src:url('AllertaStencil-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap;}
+</style>
 <script src="xlsx.full.min.js"></script>
 <style>
   :root{
@@ -422,6 +423,22 @@
   table.gradeTable td{padding:9px 12px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top;white-space:normal;}
   table.gradeTable tbody tr:hover{background:var(--accent-soft);}
 
+  /* ---------- uppdateringsnotis ---------- */
+  #updateToast{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));
+    z-index:200;background:#1E2A1E;color:#fff;border-radius:var(--radius);padding:12px 14px;
+    display:flex;align-items:center;gap:12px;box-shadow:0 6px 24px rgba(0,0,0,.3);
+    width:calc(100% - 32px);max-width:460px;font-size:13px;
+  }
+  #updateToast .btn{white-space:nowrap;}
+  .whatsnew h4{font-size:14px;margin:14px 0 6px;}
+  .whatsnew ul{margin:0 0 4px 18px;padding:0;font-size:13px;line-height:1.5;}
+  .whatsnew li{margin-bottom:4px;}
+  .reportFields{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:4px;}
+  .field .reportFields label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;color:var(--ink);margin:0;cursor:pointer;}
+  .field .reportFields input{width:16px;height:16px;flex:none;padding:0;}
+  @media (max-width:520px){ .reportFields{grid-template-columns:1fr;} }
+
   /* ---------- modal ---------- */
   .overlay{
     position:fixed;inset:0;background:rgba(20,24,20,.45);
@@ -604,11 +621,15 @@ const DEFAULT_COMPETENCIES = [
   {id:'forarbevis_bandvagn', label:'FÖRARBEVIS BANDVAGN', expiry:true, showInStats:true},
   {id:'forarbevis_lastbil', label:'FÖRARBEVIS LASTBIL', expiry:true, showInStats:true},
   {id:'forarbevis_tungtslap', label:'FÖRARBEVIS TUNGTSLÄP', expiry:true, showInStats:true},
+  {id:'forarbevis_terrangbil', label:'FÖRARBEVIS TERRÄNGBIL', expiry:true, showInStats:true},
+  {id:'forarbevis_terranglastbil', label:'FÖRARBEVIS TERRÄNGLASTBIL', expiry:true, showInStats:true},
   {id:'adr_13', label:'ADR 1.3', expiry:true, showInStats:true},
   {id:'tmm', label:'TMM', expiry:false, showInStats:true},
   {id:'rpas', label:'RPAS', expiry:false, showInStats:true},
   {id:'grg', label:'GRG', expiry:false, showInStats:true},
   {id:'ksp', label:'KSP', expiry:false, showInStats:true},
+  {id:'skarpskytt', label:'Skarpskytt', expiry:false, showInStats:true},
+  {id:'prickskytt', label:'Prickskytt', expiry:false, showInStats:true},
   {id:'sjukvard', label:'Sjukvård', expiry:false, showInStats:true},
   {id:'aktiv_instruktor', label:'Aktiv instruktör', expiry:false, showInStats:true},
   {id:'gu', label:'GU', expiry:false, showInStats:true},
@@ -633,7 +654,7 @@ const DEFAULT_COMPETENCIES = [
 const GRADES = [
   {label:'Menig',        level:1,  bef:null, comps:['GUF'], minYears:null},
   /* Menig 1: GU, eller genomförd grundutbildning som blåbandare
-     (8 avtalsövningar, noterad i notisrutan — se p.grundutbKlar). */
+     (4 avtalsövningar, noterad i notisrutan — se p.grundutbKlar). */
   {label:'Menig 1',      level:2,  bef:null, comps:['GU'], orGrundutb:true, minYears:null},
   {label:'Menig 2',      level:3,  bef:null, compsAny:['GU','GUF'], minYears:2},
   {label:'Menig 3',      level:4,  bef:null, compsAny:['GU','GUF'], minYears:5},
@@ -663,7 +684,7 @@ const EXERCISE_TYPES = [{key:'SOF',label:'SÖF'},{key:'KFO',label:'KFÖ'}];
    som ligger kvar tills den noteras — först då tas den blå markeringen
    bort (p.underUtbildning=false, p.grundutbKlar=true) och personen
    uppfyller kraven för graden Menig 1. */
-const GRUNDUTB_KRAV = 8;
+const GRUNDUTB_KRAV = 4;
 
 const RECRUIT_STEPS = [
   {key:'intresseanmalan', label:'Intresseanmälan', date:false},
@@ -738,8 +759,30 @@ function defaultData(){
     persons:[],
     mal:{},
     notiser:{expiry:{}, grad:{}, flytt:[]},
-    g6ReserveApplied:true
+    gallring:{last:Date.now()},
+    g6ReserveApplied:true,
+    komp2026OrderApplied:true
   };
+}
+/* Om registerägaren redan lagt till t.ex. "Skarpskytt" som egen kompetens
+   tas den över av standardkompetensen (samma id), så att det inte blir
+   dubbletter och personernas markeringar/utgångsdatum följer med. */
+function adoptCustomCompetencies(data){
+  const norm = s=>String(s||'').toLowerCase().replace(/[\s\-]/g,'');
+  DEFAULT_COMPETENCIES.forEach(dc=>{
+    if(data.competencies.some(c=>c.id===dc.id)) return;
+    const own = data.competencies.find(c=>norm(c.label)===norm(dc.label));
+    if(!own) return;
+    const oldId = own.id;
+    own.id = dc.id;
+    if(dc.expiry) own.expiry = true;
+    (data.persons||[]).forEach(p=>{
+      if(p.kompetenser && p.kompetenser[oldId]!==undefined){
+        if(!p.kompetenser[dc.id]) p.kompetenser[dc.id] = p.kompetenser[oldId];
+        delete p.kompetenser[oldId];
+      }
+    });
+  });
 }
 function ensureDefaultCompetencies(data){
   const ids = data.competencies.map(c=>c.id);
@@ -772,6 +815,24 @@ function ensureAdr13Order(data){
   if(data.adr13OrderApplied) return;
   placeCompetencyAfter(data.competencies, 'adr_13', 'forarbevis_tungtslap');
   data.adr13OrderApplied = true;
+}
+function placeCompetencyBefore(list, id, beforeId){
+  const idx = list.findIndex(c=>c.id===id);
+  if(idx===-1 || list.findIndex(c=>c.id===beforeId)===-1) return;
+  const [item] = list.splice(idx,1);
+  list.splice(list.findIndex(c=>c.id===beforeId),0,item);
+}
+/* one-time migration (okt 2026): Skarpskytt och Prickskytt placeras
+   direkt efter KSP, förarbevis Terrängbil/Terränglastbil direkt före
+   ADR 1.3. Skyddad med flagga så att egen omsortering inte skrivs över. */
+function ensureKomp2026Order(data){
+  if(data.komp2026OrderApplied) return;
+  const L = data.competencies;
+  placeCompetencyAfter(L, 'skarpskytt', 'ksp');
+  placeCompetencyAfter(L, 'prickskytt', 'skarpskytt');
+  placeCompetencyBefore(L, 'forarbevis_terrangbil', 'adr_13');
+  placeCompetencyBefore(L, 'forarbevis_terranglastbil', 'adr_13');
+  data.komp2026OrderApplied = true;
 }
 function ensureNamePosition(data){
   const order = data.columnOrder;
@@ -955,9 +1016,11 @@ function hydrateData(parsed){
   ensureNamePosition(parsed);
   ensureColumnOrderComplete(parsed);
   if(!parsed.competencies || !parsed.competencies.length){ parsed.competencies = DEFAULT_COMPETENCIES.map(c=>({...c})); }
+  adoptCustomCompetencies(parsed);
   ensureDefaultCompetencies(parsed);
   ensureBandvagnOrder(parsed);
   ensureAdr13Order(parsed);
+  ensureKomp2026Order(parsed);
   ensureCompetencyStatsFlags(parsed.competencies);
   if(!parsed.mal) parsed.mal = {};
   ensureNotiser(parsed);
@@ -1006,6 +1069,7 @@ async function loadLocalRegister(key){
     if(!isEncryptedPayload(raw)) saveToDisk(); // gammalt okrypterat register krypteras direkt
     view = {name:'home'};
     renderAll();
+    setTimeout(maybeAskGallring, 400);
   }catch(e){ alert('Registret kunde inte läsas.'); }
 }
 function createLocalRegister(name){
@@ -1857,30 +1921,58 @@ async function saveGeneratedWorkbook(wb, outFilename, usingFolder){
   }
 }
 
-/* ---------- personalrapport ---------- */
+/* ---------- personalrapport ----------
+   Användaren väljer vilka uppgifter som ska med. Kolumnerna skrivs i
+   ordningen nedan, utan tomma luckor; rubrikrad, kolumnbredder och
+   sammanslagningen i rad 1 byggs om utifrån valet. Mallens formatering
+   (typsnitt, rubrikfärg) behålls. */
+const REPORT_FIELDS = [
+  {key:'befnr',  label:'Befattningsnummer',  def:true},
+  {key:'anstnr', label:'Anställningsnummer', def:true},
+  {key:'namn',   label:'Namn',               def:false},
+  {key:'grad',   label:'Grad',               def:false},
+  {key:'kontakt',label:'Kontaktuppgifter (telefonnummer och mejladress)', def:false},
+  {key:'ovrigt', label:'Tom kolumn "Övrigt"', def:false},
+];
+/* kolumner som faktiskt hamnar i filen (kontaktuppgifter blir två) */
+const REPORT_COLUMNS = {
+  befnr:  [{head:'Befattningsnummer', width:24.6, val:p=>personBefattningsnummer(p)||''}],
+  anstnr: [{head:'Anställningsnummer', width:26, val:p=>p.anstallningsnummer||''}],
+  namn:   [{head:'Namn', width:32, val:p=>(p.namn||'').trim()}],
+  grad:   [{head:'Grad', width:18, val:p=>{ const cg = currentGrade(p); return cg ? cg.label : ''; }}],
+  kontakt:[{head:'Telefonnummer', width:20, val:p=>p.telefonnummer||''},
+           {head:'E-post', width:32, val:p=>p.mejladress||''}],
+  ovrigt: [{head:'Övrigt', width:35, val:()=>''}],
+};
+const LS_REPORT_FIELDS = 'personalregister_report_fields';
+function loadReportFieldChoice(){
+  try{
+    const v = JSON.parse(localStorage.getItem(LS_REPORT_FIELDS)||'null');
+    if(Array.isArray(v)) return v;
+  }catch(e){}
+  return REPORT_FIELDS.filter(f=>f.def).map(f=>f.key);
+}
 function openReportModal(){
   if(!DATA || !selectedPersons.size){
     alert('Markera minst en person på startsidan innan du genererar rapporten.');
     return;
   }
-  const usingFolder = fsaSupported && !!dirHandle;
+  const chosen = loadReportFieldChoice();
   const overlay = document.createElement('div');
   overlay.className='overlay';
   overlay.innerHTML = `<div class="modal">
     <h3>Generera personalrapport</h3>
     <div class="banner info">
       ${selectedPersons.size} markerade personer tas med.<br>
-      <span style="font-size:11px;">Personalrapportens mall är inbyggd i appen. Befattningsnummer skrivs i kolumn A och Anställningsnummer i kolumn B, en rad per person.${usingFolder ? ' Filen sparas i registrets mapp.' : ''}</span>
+      <span style="font-size:11px;">Personalrapportens mall är inbyggd i appen. Kolumnerna fylls i den ordning de står nedan, en rad per person.</span>
     </div>
     <div class="formgrid">
-      <div class="field full"><label>Filnamn (skrivs även i cell D1)</label><input id="reportFileName" placeholder="t.ex. Personalrapport 2026-09"></div>
-      <div class="field checkfield full">
-        <input type="checkbox" id="reportContact">
-        <label for="reportContact" style="margin:0;">Lägg till kontaktuppgifter (Telefonnummer i kolumn C, Mejladress i kolumn D)</label>
-      </div>
-      <div class="field checkfield full">
-        <input type="checkbox" id="reportGrade">
-        <label for="reportGrade" style="margin:0;">Lägg till aktuell grad (i kolumnen Övrigt)</label>
+      <div class="field full"><label>Filnamn (skrivs även i rapportens rubrik)</label><input id="reportFileName" placeholder="t.ex. Personalrapport 2026-09"></div>
+      <div class="field full">
+        <label>Uppgifter som ska med i rapporten</label>
+        <div class="reportFields">
+          ${REPORT_FIELDS.map(f=>`<label><input type="checkbox" class="reportField" value="${f.key}" ${chosen.includes(f.key)?'checked':''}> ${esc(f.label)}</label>`).join('')}
+        </div>
       </div>
     </div>
     <div class="modal-actions">
@@ -1892,40 +1984,71 @@ function openReportModal(){
   document.body.appendChild(overlay);
   setTimeout(()=>{ document.getElementById('reportFileName').focus(); },0);
 }
+function colLetter(i){ let s=''; i++; while(i>0){ const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; }
+/* Bygger rapporten från den inbyggda mallen med valda kolumner. */
+function buildPersonnelReport(columns, persons, title){
+  const cfb = XLSX.CFB.read(b64ToBytes(TEMPLATE_PERSONALRAPPORT_B64), {type:'array'});
+  const idx = cfb.FullPaths.findIndex(p=>/\/xl\/worksheets\/sheet1\.xml$/.test(p));
+  if(idx<0) throw new Error('Mallen saknar blad 1.');
+  const entry = cfb.FileIndex[idx];
+  let xml = new TextDecoder('utf-8').decode(entry.content);
+  const n = columns.length, last = colLetter(n-1);
+  const cell = (addr, style, v)=> (v==null || v==='')
+    ? `<c r="${addr}" s="${style}"/>`
+    : `<c r="${addr}" s="${style}" t="inlineStr"><is><t xml:space="preserve">${xmlEscape(v)}</t></is></c>`;
+  const lastRow = Math.max(TEMPLATE_MAX_ROW, persons.length+2);
+  /* rad 1: "Personalrapport avser" + filnamn, rad 2: rubriker, rad 3–: personer */
+  const labelEnd = n>=2 ? Math.max(1, n-2) : 1; // antal kolumner för etiketten
+  let rows = '';
+  if(n===1){
+    rows += `<row r="1" spans="1:1" ht="49.5" customHeight="1">${cell('A1',1,'Personalrapport avser: '+title)}</row>`;
+  } else {
+    let r1 = '';
+    for(let i=0;i<n;i++){
+      const a = colLetter(i)+'1';
+      r1 += i===0 ? cell(a,1,'Personalrapport avser') : (i===labelEnd ? cell(a,1,title) : cell(a,1,''));
+    }
+    rows += `<row r="1" spans="1:${n}" ht="49.5" customHeight="1">${r1}</row>`;
+  }
+  rows += `<row r="2" spans="1:${n}" ht="51" customHeight="1">${columns.map((c,i)=>cell(colLetter(i)+'2',2,c.head)).join('')}</row>`;
+  for(let r=3;r<=lastRow;r++){
+    const p = persons[r-3];
+    rows += `<row r="${r}" spans="1:${n}" ht="15.75">${columns.map((c,i)=>cell(colLetter(i)+r,3,p?c.val(p):'')).join('')}</row>`;
+  }
+  const cols = '<cols>'+columns.map((c,i)=>`<col min="${i+1}" max="${i+1}" width="${c.width}" customWidth="1"/>`).join('')+'</cols>';
+  const merges = [];
+  if(n>=2){
+    if(labelEnd>1) merges.push(`A1:${colLetter(labelEnd-1)}1`);
+    if(n-1>labelEnd) merges.push(`${colLetter(labelEnd)}1:${last}1`);
+  }
+  const mergeXml = merges.length ? `<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>` : '';
+  const totalWidth = columns.reduce((a,c)=>a+c.width,0);
+  xml = xml.replace(/<dimension ref="[^"]*"\/>/, `<dimension ref="A1:${last}${lastRow}"/>`)
+           .replace(/<cols>[\s\S]*?<\/cols>/, cols)
+           .replace(/<sheetData>[\s\S]*<\/sheetData>/, `<sheetData>${rows}</sheetData>`)
+           .replace(/<mergeCells[\s\S]*?<\/mergeCells>/, mergeXml)
+           .replace(/orientation="(portrait|landscape)"/, `orientation="${totalWidth>140?'landscape':'portrait'}"`);
+  entry.content = new TextEncoder().encode(xml);
+  entry.size = entry.content.length;
+  const out = XLSX.CFB.write(cfb, {fileType:'zip', type:'array'});
+  return out instanceof Uint8Array ? out : new Uint8Array(out);
+}
 async function generatePersonnelReport(){
   const nameInput = document.getElementById('reportFileName');
   const filename = nameInput.value.trim();
   if(!filename){ nameInput.focus(); return; }
-  const withContact = document.getElementById('reportContact').checked;
-  const withGrade = document.getElementById('reportGrade').checked;
+  const keys = [...document.querySelectorAll('.reportField:checked')].map(i=>i.value);
+  if(!keys.length){ alert('Välj minst en uppgift som ska med i rapporten.'); return; }
+  try{ localStorage.setItem(LS_REPORT_FIELDS, JSON.stringify(keys)); }catch(e){}
+  const columns = REPORT_FIELDS.filter(f=>keys.includes(f.key)).flatMap(f=>REPORT_COLUMNS[f.key]);
   const usingFolder = fsaSupported && !!dirHandle;
 
   const persons = selectedPersonsInHomeOrder();
   if(!persons.length){ alert('Inga markerade personer kunde hittas.'); return; }
-  const MAX_ROWS = TEMPLATE_MAX_ROW - 2; // rad 3–442
-  let rows = persons;
-  if(rows.length > MAX_ROWS){
-    alert(`Mallen har plats för ${MAX_ROWS} personer. ${rows.length} är markerade — endast de första ${MAX_ROWS} tas med.`);
-    rows = rows.slice(0, MAX_ROWS);
-  }
   if(typeof XLSX === 'undefined'){ alert('Excel-biblioteket kunde inte laddas. Ladda om appen och försök igen.'); return; }
 
-  const cells = {D1: filename};
-  rows.forEach((p,i)=>{
-    const r = 3+i;
-    cells['A'+r] = personBefattningsnummer(p)||'';
-    cells['B'+r] = p.anstallningsnummer||'';
-    if(withContact){
-      cells['C'+r] = p.telefonnummer||'';
-      cells['D'+r] = p.mejladress||'';
-    }
-    if(withGrade){
-      const cg = currentGrade(p);
-      cells['E'+r] = cg ? cg.label : '';
-    }
-  });
   let bytes;
-  try{ bytes = fillBuiltInTemplate(TEMPLATE_PERSONALRAPPORT_B64, cells); }
+  try{ bytes = buildPersonnelReport(columns, persons, filename); }
   catch(e){ alert('Kunde inte skapa rapporten: '+(e.message||e)); return; }
 
   const outFilename = sanitizeFileBase(filename) + '.xlsx';
@@ -2079,16 +2202,20 @@ function personBefattningsnummer(p){
    radas upp. Detta påverkar bara PRESENTATIONEN - den underliggande
    befattningstexten (t.ex. i platsredigering, gradmatchning och
    statistikens C-igenkänning) är opåverkad. */
-const COMPETENCY_ABBR_ORDER = ['forarbevis_pb8','forarbevis_lastbil','forarbevis_tungtslap','forarbevis_bandvagn','grg','rpas','tmm','ksp','sjukvard'];
+const COMPETENCY_ABBR_ORDER = ['forarbevis_pb8','forarbevis_terrangbil','forarbevis_lastbil','forarbevis_terranglastbil','forarbevis_tungtslap','forarbevis_bandvagn','grg','rpas','tmm','ksp','skarpskytt','prickskytt','sjukvard'];
 const COMPETENCY_ABBR = {
   forarbevis_pb8:'PB8',
   forarbevis_lastbil:'LB',
+  forarbevis_terrangbil:'TGB',
+  forarbevis_terranglastbil:'TGLB',
   forarbevis_tungtslap:'TS',
   forarbevis_bandvagn:'BV',
   grg:'GRG',
   rpas:'RPAS',
   tmm:'TMM',
   ksp:'KSP',
+  skarpskytt:'Sksky',
+  prickskytt:'PSG',
   sjukvard:'GSJV',
 };
 function personCompetencyAbbrs(p){
@@ -2205,10 +2332,14 @@ function computeNotices(){
       if(!st || !st.has || !st.utgangsdatum) return;
       const expiryDate = new Date(st.utgangsdatum+'T00:00:00');
       const daysLeft = Math.round((expiryDate-today)/86400000);
-      [12,6,3].forEach(months=>{
+      /* bara den mest akuta passerade nivån visas — annars blir det tre
+         likadana notiser när ett datum som redan ligger nära förs in */
+      const passed = [12,6,3].filter(months=>{
         const thresholdDate = new Date(expiryDate);
         thresholdDate.setMonth(thresholdDate.getMonth()-months);
-        if(today < thresholdDate) return;
+        return today >= thresholdDate;
+      });
+      passed.slice(-1).forEach(months=>{
         const key = p.id+'|'+c.id+'|'+st.utgangsdatum+'|'+months;
         if(DATA.notiser.expiry[key]) return;
         const desc = daysLeft<0
@@ -2844,12 +2975,13 @@ function renderGroupFlexible(gid){
     <div class="viewhead">
       <div>
         <h2 id="gname2-${g.id}" onclick="editGroupNameGroupView('${g.id}')">${esc(g.name)}</h2>
-        <div class="sub">${people.length} personer registrerade. Klicka på en person för kompetenser${isRecruit?'':', övningar och utvecklingsplan'}. Använd pilarna för att ändra ordning inom gruppen.</div>
+        <div class="sub">${people.length} personer registrerade. Klicka på en person för kompetenser${isRecruit?'':', övningar och utvecklingsplan'}. Använd pilarna för att ändra ordning inom gruppen.${g.kind==='offboarding' ? ` <br>Gruppen gallras var tredje månad — nästa gallring: <strong>${fmtGallringDate(nextGallringDate())}</strong>.` : ''}</div>
       </div>
       <div class="headActions">
         <button class="btn small" onclick="toggleColumnPanel()">Ordna kolumner</button>
         <button class="btn small" onclick="openExportModal('group','${gid}')">Exportera</button>
         <button class="btn small" onclick="openSlackImportModal('${gid}')">Importera från Slack</button>
+        ${g.kind==='offboarding' ? `<button class="btn small danger" onclick="openGallringModal(true)">Gallra…</button>` : ''}
         <button class="btn primary" onclick="openPersonForm('${gid}')">+ Lägg till personal</button>
       </div>
     </div>
@@ -3090,6 +3222,101 @@ function savePersonForm(existingId, gid, slotIndex){
   view = {name:'group', gid: p.groupId};
   renderAll();
 }
+/* ---------- gallring av gruppen Avveckling ----------
+   Ungefär var tredje månad frågar appen (när ett register öppnas) om
+   personerna i Avveckling ska gallras, om det finns någon där. Tidpunkten
+   sparas i registret (DATA.gallring). */
+const GALLRING_INTERVAL_MS = 91*86400000;   // ca tre månader
+const GALLRING_SNOOZE_MS = 7*86400000;      // "Påminn om en vecka"
+function offboardingGroup(){ return DATA ? DATA.groups.find(g=>g.kind==='offboarding') : null; }
+function offboardingPersons(){ const g = offboardingGroup(); return g ? personsInGroup(g.id) : []; }
+function ensureGallring(){
+  if(!DATA.gallring || typeof DATA.gallring!=='object') DATA.gallring = {};
+  /* första gången: perioden börjar räknas nu */
+  if(!DATA.gallring.last){ DATA.gallring.last = Date.now(); return true; }
+  return false;
+}
+function fmtGallringDate(ms){ try{ return new Date(ms).toLocaleDateString('sv-SE'); }catch(e){ return ''; } }
+function nextGallringDate(){ ensureGallring(); return DATA.gallring.last + GALLRING_INTERVAL_MS; }
+function maybeAskGallring(){
+  if(!DATA || lockMode || document.querySelector('.overlay')) return;
+  let changed = ensureGallring();
+  const now = Date.now();
+  const due = now >= nextGallringDate();
+  if(due && !offboardingPersons().length){
+    DATA.gallring.last = now; DATA.gallring.snoozeUntil = 0; changed = true;   // inget att gallra — ny period börjar
+  } else if(due && !(DATA.gallring.snoozeUntil && now < DATA.gallring.snoozeUntil)){
+    if(changed) saveToDisk();
+    openGallringModal(false);
+    return;
+  }
+  if(changed) saveToDisk();
+}
+function openGallringModal(manual){
+  if(!DATA) return;
+  const g = offboardingGroup();
+  const people = offboardingPersons();
+  if(!g) return;
+  if(!people.length){ if(manual) alert(`Det finns ingen personal i ${g.name} att gallra.`); return; }
+  ensureGallring();
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal" style="max-width:480px;">
+    <h3>Gallring — ${esc(g.name)}</h3>
+    <p style="color:var(--ink-soft);font-size:13px;">${manual ? '' : 'Det är dags för den regelbundna gallringen (var tredje månad). '}Uppgifter om personal som avvecklats ska inte sparas längre än nödvändigt. Markerade personer tas bort helt ur registret.</p>
+    <div style="max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius);padding:8px 10px;margin:10px 0;">
+      <label class="checkwrap" style="font-weight:600;margin-bottom:6px;"><input type="checkbox" checked onchange="document.querySelectorAll('.gallrPick').forEach(c=>c.checked=this.checked);updateGallrBtn()"> Markera alla</label>
+      ${people.map(p=>`<label class="checkwrap" style="margin:4px 0;"><input type="checkbox" class="gallrPick" value="${esc(p.id)}" checked onchange="updateGallrBtn()"> ${esc(fullName(p)||'(namnlös)')}</label>`).join('')}
+    </div>
+    <p style="color:var(--ink-faint);font-size:12px;">Senaste gallring: ${fmtGallringDate(DATA.gallring.last)}. Gallringen gäller registret i den här appen — radera även gamla säkerhetskopior och exporter där personerna finns med.</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="snoozeGallring()">${manual ? 'Avbryt' : 'Påminn om en vecka'}</button>
+      <button class="btn danger" id="gallrBtn" onclick="runGallring()">Gallra markerade (${people.length})</button>
+    </div>
+  </div>`;
+  if(manual) overlay.dataset.manual = '1';
+  document.body.appendChild(overlay);
+}
+function updateGallrBtn(){
+  const n = document.querySelectorAll('.gallrPick:checked').length;
+  const b = document.getElementById('gallrBtn');
+  if(b) b.textContent = n ? `Gallra markerade (${n})` : 'Behåll alla — klar';
+}
+function snoozeGallring(){
+  const ov = document.querySelector('.overlay');
+  const manual = ov && ov.dataset.manual==='1';
+  closeModal();
+  if(!manual && DATA){
+    ensureGallring();
+    DATA.gallring.snoozeUntil = Date.now() + GALLRING_SNOOZE_MS;
+    saveToDisk();
+  }
+}
+function purgePersons(ids){
+  const set = new Set(ids);
+  DATA.persons = DATA.persons.filter(p=>!set.has(p.id));
+  ensureNotiser(DATA);
+  DATA.notiser.flytt = DATA.notiser.flytt.filter(n=>!set.has(n.pid));
+  ['expiry','grad'].forEach(k=>{
+    const o = DATA.notiser[k] || {};
+    Object.keys(o).forEach(key=>{ if(set.has(key) || set.has(key.split('|')[0])) delete o[key]; });
+  });
+  ids.forEach(id=>selectedPersons.delete(id));
+  if(view.name==='person' && set.has(view.pid)){ const g = offboardingGroup(); view = g ? {name:'group', gid:g.id} : {name:'home'}; }
+}
+function runGallring(){
+  const ids = [...document.querySelectorAll('.gallrPick:checked')].map(c=>c.value);
+  if(ids.length && !confirm(`Ta bort ${ids.length} ${ids.length===1?'person':'personer'} ur registret? Detta går inte att ångra.`)) return;
+  closeModal();
+  if(ids.length) purgePersons(ids);
+  ensureGallring();
+  DATA.gallring.last = Date.now();
+  DATA.gallring.snoozeUntil = 0;
+  saveToDisk();
+  renderAll();
+  if(ids.length) alert(`Gallringen är klar. ${ids.length} ${ids.length===1?'person har':'personer har'} tagits bort. Nästa gallring: ${fmtGallringDate(nextGallringDate())}.`);
+}
+
 function deletePerson(pid){
   const p = DATA.persons.find(x=>x.id===pid);
   if(!p) return;
@@ -4063,8 +4290,9 @@ async function afterUnlock(){
   const registry = lsLoadRegistry();
   registerList = registry;
   const active = currentFileName || localStorage.getItem(LS_ACTIVE);
-  if(active && registry.some(r=>r.key===active)){ await loadLocalRegister(active); return; }
-  view = {name:'setup'}; renderAll();
+  if(active && registry.some(r=>r.key===active)){ await loadLocalRegister(active); }
+  else { view = {name:'setup'}; renderAll(); }
+  maybeShowWhatsNew();
 }
 /* ---- automatiskt lås ---- */
 let hiddenAt = 0, lastActivity = Date.now();
@@ -4271,6 +4499,7 @@ function askPinModal(text){
 }
 
 function init(){
+  appWasInstalledBefore = !!loadVault() || lsLoadRegistry().length>0;
   if(!cryptoAvailable()){
     document.getElementById('app').innerHTML = `<div class="banner setup"><h2>Kan inte starta säkert</h2><p>Registret krypteras och måste därför öppnas via appens webbadress (https), inte som en lokal fil.</p></div>`;
     return;
@@ -4285,9 +4514,89 @@ function init(){
 }
 init();
 
+/* ---------- versioner och uppdateringsnotis ----------
+   Lägg till en ny post ÖVERST i APP_CHANGELOG vid varje uppladdning (och
+   höj VERSION i sw.js). Efter upplåsning visas det som är nytt sedan
+   användaren senast öppnade appen. Ny installation visar ingen notis. */
+const APP_CHANGELOG = [
+  {version:'2026-10-02', title:'Uppdatering 2 oktober 2026', items:[
+    'Blåbandare är färdigutbildade efter 4 genomförda avtalsövningar (SÖF eller KFÖ), tidigare 8.',
+    'Personalrapporten: du väljer själv vilka uppgifter som ska med – befattningsnummer, anställningsnummer, namn, grad och kontaktuppgifter. Valet sparas till nästa gång.',
+    'Nya grundkompetenser: Skarpskytt (Sksky) och Prickskytt (PSG) efter KSP, samt Förarbevis Terrängbil (TGB) och Förarbevis Terränglastbil (TGLB) med utgångsdatum, före ADR. Förkortningarna visas vid befattningen i översikten.',
+    'Appen meddelar nu när den har uppdaterats och vad som är nytt.'
+  ]},
+  {version:'v19', items:['Tidigare version.']}
+];
+const APP_VERSION = APP_CHANGELOG[0].version;
+/* Måste vara samma som VERSION i sw.js. */
+const SW_CACHE_VERSION = 'personalregister-v20';
+const LS_SEEN_VERSION = 'personalregister_seen_version';
+var appWasInstalledBefore; // sätts i init(), som körs före den här raden
+function maybeShowWhatsNew(){
+  let seen = null;
+  try{ seen = localStorage.getItem(LS_SEEN_VERSION); }catch(e){}
+  if(seen===APP_VERSION) return;
+  try{ localStorage.setItem(LS_SEEN_VERSION, APP_VERSION); }catch(e){}
+  if(!seen && !appWasInstalledBefore) return; // helt ny installation
+  let idx = APP_CHANGELOG.findIndex(c=>c.version===seen);
+  if(idx<1) idx = 1; // okänd/äldre version: visa senaste uppdateringen
+  const entries = APP_CHANGELOG.slice(0, idx);
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal whatsnew">
+    <h3>Appen har uppdaterats</h3>
+    <p style="font-size:13px;color:var(--ink-soft);">Du kör nu version ${esc(APP_VERSION)}. Det här är nytt:</p>
+    ${entries.map(c=>`<h4>${esc(c.title||('Version '+c.version))}</h4><ul>${c.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`).join('')}
+    <div class="modal-actions"><button class="btn primary" onclick="closeModal()">OK</button></div>
+  </div>`;
+  overlay.onclick = (e)=>{ if(e.target===overlay) closeModal(); };
+  document.body.appendChild(overlay);
+}
+/* En ny version hämtades medan appen var öppen: erbjud omstart. */
+function showUpdateToast(){
+  if(document.getElementById('updateToast')) return;
+  const t = document.createElement('div');
+  t.id = 'updateToast';
+  t.innerHTML = `<div style="flex:1;">En ny version av appen har hämtats. Starta om för att använda den${vaultKey ? ' (du anger PIN-koden igen)' : ''}.</div>
+    <button class="btn primary small" id="updateNow">Starta om</button>
+    <button class="btn small" id="updateLater" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.4);">Senare</button>`;
+  document.body.appendChild(t);
+  t.querySelector('#updateLater').onclick = ()=>t.remove();
+  t.querySelector('#updateNow').onclick = async ()=>{
+    try{ await saveToDisk(); await saveChain; }catch(e){}
+    location.reload();
+  };
+}
+
 /* ---------- PWA: offline-stöd och beständig lagring ---------- */
 if('serviceWorker' in navigator && /^https?:/.test(location.protocol)){
-  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(e=>console.warn('Service worker:', e)); });
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloadOffered = false;
+  navigator.serviceWorker.addEventListener('controllerchange', async ()=>{
+    if(!hadController || reloadOffered) return; // första installationen
+    /* Visa bara rutan om den nya versionen är en annan än den som körs. */
+    try{
+      const ctrl = navigator.serviceWorker.controller;
+      if(ctrl && ctrl.state!=='activated'){
+        await new Promise(res=>{
+          ctrl.addEventListener('statechange', ()=>{ if(ctrl.state==='activated' || ctrl.state==='redundant') res(); });
+          setTimeout(res, 10000);
+        });
+      }
+      const keys = await caches.keys();
+      if(keys.includes(SW_CACHE_VERSION)) return;
+    }catch(e){}
+    reloadOffered = true;
+    showUpdateToast();
+  });
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      /* leta efter ny version när appen tas fram igen, och varje timme */
+      const check = ()=>{ reg.update().catch(()=>{}); };
+      document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) check(); });
+      setInterval(check, 60*60*1000);
+    }).catch(e=>console.warn('Service worker:', e));
+  });
 }
 if(navigator.storage && navigator.storage.persist){
   navigator.storage.persist().catch(()=>{});
