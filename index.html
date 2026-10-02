@@ -1346,11 +1346,15 @@ function groupSlackText(gid, onlySelected){
   const g = getGroup(gid);
   if(!g) return '';
   const people = onlySelected ? exportPersonsForGroup(gid) : groupPersonRows(gid);
+  /* radnummer (fast plats) per person i fasta grupper */
+  const rowOf = new Map();
+  if(g.kind==='standard') standardGroupRows(gid).forEach(r=>{ if(r.person && !r.overflow) rowOf.set(r.person.id, r.idx); });
   const lines = ['*'+g.name+'*', ''];
   if(!people.length){ lines.push('_Ingen personal registrerad_'); }
   people.forEach(p=>{
     const bef = personBefattningDisplay(p);
     lines.push('• *'+fullName(p)+'*'+(bef ? ' — '+bef : ''));
+    lines.push(personPlatsLine(p, g, rowOf.has(p.id) ? rowOf.get(p.id) : null));
     const fieldsLine = personSlackFieldsLine(p);
     if(fieldsLine) lines.push(fieldsLine);
     lines.push(...personSlackDetailLines(p));
@@ -1414,7 +1418,7 @@ function openExportModal(scope, gid){
    formatting. Instead, any line that isn't recognisable as one of our
    own "Label: value" detail lines is treated as the start of a new
    person. */
-const SLACK_DETAIL_LABEL_RE = /^(Under utbildning|Grundutbildning|Kompetenser|Avtalsövningar\s+\d{4}|Utvecklingsplan\s+\d{4}|Avtalsår innan\s+\d{4}|Stf PlutC\/PlutC sedan år)\s*:/i;
+const SLACK_DETAIL_LABEL_RE = /^(Plats|Under utbildning|Grundutbildning|Kompetenser|Avtalsövningar\s+\d{4}|Utvecklingsplan\s+\d{4}|Avtalsår innan\s+\d{4}|Stf PlutC\/PlutC sedan år)\s*:/i;
 function slackFieldPairs(line){
   /* Matches "Label: value" runs without depending on a specific
      separator character between them (Slack round-trips can turn our
@@ -1571,6 +1575,7 @@ function applySlackPlutcSedanAr(p, line){
 }
 function applySlackLines(p, g, lines, skipBefNr){
   lines.forEach(line=>{
+    if(/^Plats:/i.test(line)) return; // hanteras vid placeringen
     if(/^(Under utbildning|Grundutbildning):/i.test(line)) applySlackTraining(p, line);
     else if(/^Kompetenser:/i.test(line)) applySlackCompetencies(p, line);
     else if(/^Avtalsövningar\s+\d{4}:/i.test(line)) applySlackAvtalOvning(p, line);
@@ -1590,13 +1595,6 @@ function slackBlockBefNr(block){
   return '';
 }
 
-/* ---------- import av HELA plutonen från text ("Exportera allt" ->
-   "Kopiera som text"). Texten delas upp per grupp via gruppernas
-   rubrikrader (*Gruppnamn*). Personer matchas via namn mot hela
-   registret: finns personen redan uppdateras hen (och flyttas om hen
-   står under en annan grupp i texten), annars läggs hen till. Personer
-   som finns i registret men saknas i texten tas INTE bort — de listas
-   i sammanfattningen så att du själv kan avgöra. ---------- */
 async function importFullFromTextarea(){
   let text;
   try{ text = await openSharedText(document.getElementById('impText').value); }
@@ -1604,44 +1602,137 @@ async function importFullFromTextarea(){
   if(text==null) return;
   confirmFullSlackImport(text);
 }
+/* ---------- platsmärkning i exporten ----------
+   Varje person i en export får raden "Plats: <app> <grupp-id> rad <n>".
+   Grupp-id (g1, g2 …) är detsamma i alla register av samma app oavsett
+   vad grupperna har döpts till, och radnumret är personens fasta plats i
+   gruppen — så att importen kan lägga varje person på exakt samma rad
+   (och därmed samma befattningsnummer) som hos avsändaren, även när det
+   finns vakanta rader. */
+const APP_KEY = 'pluton';
+function personPlatsLine(p, g, rowIdx){
+  return '   Plats: '+APP_KEY+' '+g.id+(rowIdx!=null ? ' rad '+(rowIdx+1) : '');
+}
+function slackBlockPlats(block){
+  for(const line of block.lines){
+    const m = line.match(/^Plats:\s*(\S+)\s+(\S+?)(?:\s+rad\s+(\d+))?\s*$/i);
+    if(m) return {app:m[1].toLowerCase(), gid:m[2], row: m[3] ? parseInt(m[3],10)-1 : null};
+  }
+  return null;
+}
+/* Placerar importerade personer på fasta platser.
+   entries: [{p, g, name, row (0-baserad|null), nr, needsPlace, isNew}]
+   1) personer med radnummer (eller som behöver ny plats) kopplas loss
+   2) personer med radnummer läggs på exakt den raden; den som stod där
+      lokalt (och inte finns i texten) flyttas undan
+   3) övriga utan radnummer: samma befattningsnummer, annars första lediga
+   4) undanflyttade läggs på första lediga rad, annars "utan fast plats" */
+function placeSlackEntries(entries){
+  const std = entries.filter(e=>e.p && e.g.kind==='standard');
+  std.forEach(e=>{
+    if(e.row!=null && (e.row<0 || e.row>=e.g.slots.length)) e.row = null;
+    if(e.row!=null || e.needsPlace) e.p.slotIndex = null;
+  });
+  const evicted = [];
+  std.filter(e=>e.row!=null).forEach(e=>{
+    const occ = DATA.persons.find(x=>x!==e.p && x.groupId===e.g.id && x.slotIndex===e.row);
+    if(occ){
+      occ.slotIndex = null;
+      const oe = std.find(z=>z.p===occ);
+      if(oe){ oe.row = null; oe.placed = false; oe.needsPlace = true; }
+      else evicted.push({p:occ, g:e.g});
+    }
+    e.p.slotIndex = e.row;
+    e.placed = true;
+    e.skipNr = false;
+  });
+  std.filter(e=>e.needsPlace && !e.placed).forEach(e=>{
+    const g = e.g;
+    const taken = idx=>DATA.persons.some(x=>x.groupId===g.id && x.slotIndex===idx);
+    let idx = -1;
+    e.skipNr = false;
+    if(e.nr){
+      const m = g.slots.findIndex(sl=>String(sl.befattningsnummer||'').trim().toLowerCase()===e.nr.toLowerCase());
+      if(m>=0 && !taken(m)) idx = m;
+    }
+    if(idx<0){ idx = firstVacantSlot(g.id); e.skipNr = true; }
+    if(idx<0){ e.noRoom = true; e.p.slotIndex = null; }
+    else { e.p.slotIndex = idx; e.placed = true; }
+  });
+  const evictedText = evicted.map(({p,g})=>{
+    const idx = firstVacantSlot(g.id);
+    if(idx>=0){ p.slotIndex = idx; return fullName(p)+' ('+g.name+') → rad '+(idx+1); }
+    p.slotIndex = null; return fullName(p)+' ('+g.name+') → utan fast plats';
+  });
+  return evictedText;
+}
+
+/* ---------- import av HELA registret från text ("Exportera allt").
+   Gruppen för varje person bestäms i första hand av personens
+   platsmärkning (grupp-id), så gruppnamnen behöver inte stämma överens
+   mellan avsändare och mottagare. Äldre texter utan platsmärkning
+   kopplas via rubrikernas namn, eller — om namnen inte stämmer men
+   antalet rubriker är detsamma som antalet grupper — via rubrikernas
+   ordning. Personer som finns i registret men saknas i texten tas INTE
+   bort — de listas i sammanfattningen. ---------- */
 function confirmFullSlackImport(text){
   if(/^Avtalsuppfyllnad:/im.test(text)){
     alert('Den inklistrade texten verkar vara kopierad i ett äldre format (innehåller "Avtalsuppfyllnad:"). Exportera en ny kopia från den här versionen av registret och klistra in den istället.');
     return;
   }
   const allBlocks = parseSlackBlocks(text);
-  const groupByName = new Map(DATA.groups.map(g=>[g.name.trim().toLowerCase(), g]));
+  const norm = s=>String(s||'').trim().toLowerCase();
+  const groupByName = new Map(DATA.groups.map(g=>[norm(g.name), g]));
+  /* rubriker = block utan detaljrader (utom "Ingen personal registrerad") */
+  const headers = [];
+  allBlocks.forEach(block=>{
+    if(block.lines.length) return;
+    const hdr = extractSlackName(block.header);
+    if(/^_?Ingen personal registrerad_?$/i.test(hdr)) return;
+    const bold = /^\s*\*[^*]+\*\s*$/.test(block.header);
+    const byName = groupByName.get(norm(hdr)) || null;
+    if(bold || byName) headers.push({block, name:hdr, byName});
+  });
+  const allNamed = headers.length && headers.every(h=>h.byName);
+  const positional = !allNamed && headers.length===DATA.groups.length;
+  headers.forEach((h,i)=>{ h.g = positional ? DATA.groups[i] : h.byName; });
+  const headerOf = new Map(headers.map(h=>[h.block, h]));
+
   const entries = [];
   const unknownGroups = [];
   const skippedNoGroup = [];
-  let cur = null, sawHeader = false;
+  let cur = null;
   allBlocks.forEach(block=>{
     if(!block.lines.length){
-      const hdr = extractSlackName(block.header);
-      if(/^_?Ingen personal registrerad_?$/i.test(hdr)) return;
-      const g = groupByName.get(hdr.trim().toLowerCase());
-      if(g){ cur = g; sawHeader = true; }
-      else if(/^\s*\*[^*]+\*\s*$/.test(block.header)){ cur = null; sawHeader = true; unknownGroups.push(hdr); }
+      const h = headerOf.get(block);
+      if(h){ cur = h.g; if(!h.g && !unknownGroups.includes(h.name)) unknownGroups.push(h.name); }
       return;
     }
     const name = extractSlackName(block.header);
     if(!name) return;
-    if(!cur){ skippedNoGroup.push(name); return; }
-    entries.push({name, g:cur, block, nr:slackBlockBefNr(block)});
+    const plats = slackBlockPlats(block);
+    let g = (plats && plats.app===APP_KEY) ? getGroup(plats.gid) : null;
+    if(!g) g = cur;
+    if(!g){ skippedNoGroup.push(name); return; }
+    entries.push({name, g, block, nr:slackBlockBefNr(block),
+      row: (plats && plats.app===APP_KEY && plats.gid===g.id) ? plats.row : null});
   });
-  if(!sawHeader || (!entries.length && !skippedNoGroup.length)){
-    alert('Hittade inga grupprubriker med personal i texten. Använd "Exportera allt" → "Kopiera som text" på den andra enheten och klistra in hela texten.');
+  if(!headers.length && !entries.length){
+    alert('Hittade ingen personal i texten. Använd "Exportera allt" → "Krypterad text" på den andra enheten och klistra in hela texten.');
+    return;
+  }
+  if(!entries.length && !skippedNoGroup.length){
+    alert('Hittade inga personposter i texten.');
     return;
   }
   const byName = new Map();
-  DATA.persons.forEach(p=>{ const k = fullName(p).trim().toLowerCase(); if(!byName.has(k)) byName.set(k, p); });
+  DATA.persons.forEach(p=>{ const k = norm(fullName(p)); if(!byName.has(k)) byName.set(k, p); });
 
   const updated=[], added=[], moved=[], overflow=[];
-  const needSlot = [];
   const seen = new Set();
-  /* steg 1: koppla loss personer som byter grupp så att deras gamla plats blir ledig */
+  /* steg 1: koppla personer till rätt grupp */
   entries.forEach(e=>{
-    let p = byName.get(e.name.trim().toLowerCase());
+    let p = byName.get(norm(e.name));
     if(p && seen.has(p.id)) p = null; // samma namn två gånger -> behandla som ny
     if(p){
       seen.add(p.id);
@@ -1656,33 +1747,22 @@ function confirmFullSlackImport(text){
         p.slotIndex = null;
         p.sortIndex = nextSortIndex();
         e.moved = true;
-        if(e.g.kind==='standard') needSlot.push(e);
+        e.needsPlace = true;
       }
     } else {
       p = emptyPerson(e.g.id);
       p.namn = e.name;
       DATA.persons.push(p);
       seen.add(p.id);
-      e.p = p; e.isNew = true;
-      if(e.g.kind==='standard') needSlot.push(e);
+      e.p = p; e.isNew = true; e.needsPlace = true;
     }
   });
-  /* steg 2: placera flyttade/nya i fasta grupper — i första hand på raden
-     med samma befattningsnummer, annars första lediga rad */
-  needSlot.forEach(e=>{
-    const g = e.g;
-    const taken = idx=>DATA.persons.some(x=>x.groupId===g.id && x.slotIndex===idx);
-    let idx = -1;
-    if(e.nr){
-      const m = g.slots.findIndex(sl=>String(sl.befattningsnummer||'').trim().toLowerCase()===e.nr.toLowerCase());
-      if(m>=0 && !taken(m)) idx = m;
-    }
-    if(idx<0){ idx = firstVacantSlot(g.id); e.skipNr = true; }
-    if(idx<0){ overflow.push(e.name+' ('+g.name+')'); e.p.slotIndex = null; }
-    else e.p.slotIndex = idx;
-  });
+  /* steg 2: placera i fasta grupper — på exakt rad enligt texten */
+  const evicted = placeSlackEntries(entries);
+  entries.forEach(e=>{ if(e.noRoom) overflow.push(e.name+' ('+e.g.name+')'); });
   /* steg 3: skriv in uppgifterna */
   entries.forEach(e=>{
+    if(e.skip || !e.p) return;
     applySlackLines(e.p, e.g, e.block.lines, e.skipNr);
     if(e.isNew) added.push(e.name);
     else if(e.moved){ moved.push(e.name+' → '+e.g.name); updated.push(e.name); }
@@ -1699,6 +1779,7 @@ function confirmFullSlackImport(text){
   if(added.length) lines.push('\nNya: '+added.join(', '));
   if(moved.length) lines.push('\nFlyttade mellan grupper:\n  '+moved.join('\n  '));
   if(overflow.length) lines.push('\nIngen ledig rad — ligger "utan fast plats" i gruppen:\n  '+overflow.join('\n  '));
+  if(evicted.length) lines.push('\nStod på en rad som enligt texten tillhör någon annan och har flyttats:\n  '+evicted.join('\n  '));
   if(unknownGroups.length) lines.push('\nOkända grupprubriker (personal under dessa hoppades över): '+unknownGroups.join(', '));
   if(skippedNoGroup.length) lines.push('\nHoppades över (ingen grupp angiven): '+skippedNoGroup.join(', '));
   if(missing.length) lines.push('\nFinns i registret men saknas i texten (har INTE tagits bort):\n  '+missing.slice(0,25).join('\n  ')+(missing.length>25?'\n  … och '+(missing.length-25)+' till':''));
@@ -1712,6 +1793,11 @@ async function confirmSlackImport(gid){
   if(text==null) return;
   confirmSlackImportText(gid, text);
 }
+/* Import av EN grupp. Personer matchas via namn mot gruppens personal.
+   Har texten platsmärkning läggs varje person på exakt den rad den hade
+   hos avsändaren (vakanta rader behålls). Äldre texter utan
+   platsmärkning: befintliga behåller sin rad, nya läggs på raden med
+   samma befattningsnummer eller annars första lediga rad. */
 function confirmSlackImportText(gid, text){
   const g = getGroup(gid);
   if(!g) return;
@@ -1719,11 +1805,7 @@ function confirmSlackImportText(gid, text){
     alert('Den inklistrade texten verkar vara kopierad i ett äldre format (innehåller "Avtalsuppfyllnad:"). Exportera en ny kopia av gruppen från den här versionen av registret ("Kopiera som text") och klistra in den istället.');
     return;
   }
-  /* drops any block with no detail lines at all — a real exported person
-     always has at least "Avtalsår innan …" and "Kompetenser: …", so a
-     header with nothing under it is stray text (the group's own
-     "*Gruppnamn*" heading, a chat timestamp/sender line that tagged
-     along in the paste, etc.), never an actual person to add. */
+  /* block utan detaljrader är rubriker eller lösryckt text, aldrig personer */
   const blocks = parseSlackBlocks(text).filter(b=>b.lines.length>0);
   if(!blocks.length){ alert('Hittade inga personposter i texten. Kontrollera att den är kopierad från "Kopiera som text".'); return; }
   const people = groupPersonRows(gid);
@@ -1731,29 +1813,34 @@ function confirmSlackImportText(gid, text){
   const updated = [];
   const added = [];
   const noRoom = [];
+  const entries = [];
+  const used = new Set();
   blocks.forEach(block=>{
     const name = extractSlackName(block.header);
     if(!name) return;
+    const plats = slackBlockPlats(block);
     let p = byName.get(name.trim().toLowerCase());
-    let isNew = false;
-    if(!p){
-      /* ny personal som inte finns i gruppen sedan tidigare — placeras på
-         första lediga (tomma) platsen för fasta grupper, eller läggs till
-         som ny rad i fria listor (rekrytering/avveckling) */
-      if(g.kind==='standard'){
-        const vacant = firstVacantSlot(gid);
-        if(vacant<0){ noRoom.push(name); return; }
-        p = emptyPerson(gid);
-        p.slotIndex = vacant;
-      } else {
-        p = emptyPerson(gid);
-      }
+    if(p && used.has(p.id)) p = null;
+    const e = {name, g, block, nr:slackBlockBefNr(block), row: plats ? plats.row : null};
+    if(p){ used.add(p.id); e.p = p; }
+    else {
+      p = emptyPerson(gid);
       p.namn = name;
-      isNew = true;
+      DATA.persons.push(p);
+      used.add(p.id);
+      e.p = p; e.isNew = true; e.needsPlace = true;
     }
-    applySlackLines(p, g, block.lines);
-    if(isNew){ DATA.persons.push(p); added.push(name); }
-    else updated.push(name);
+    entries.push(e);
+  });
+  const evicted = (g.kind==='standard') ? placeSlackEntries(entries) : [];
+  entries.forEach(e=>{
+    if(e.isNew && e.noRoom){
+      DATA.persons.splice(DATA.persons.indexOf(e.p), 1);
+      noRoom.push(e.name);
+      return;
+    }
+    applySlackLines(e.p, g, e.block.lines, e.skipNr);
+    if(e.isNew) added.push(e.name); else updated.push(e.name);
   });
   closeModal();
   saveToDisk();
@@ -1762,6 +1849,7 @@ function confirmSlackImportText(gid, text){
   if(updated.length) parts.push(`${updated.length} person${updated.length===1?'':'er'} uppdaterade`);
   if(added.length) parts.push(`${added.length} ny${added.length===1?'':'a'} person${added.length===1?'':'er'} tillagd${added.length===1?'':'a'} (${added.join(', ')})`);
   let msg = parts.length ? parts.join(' och ')+` i "${g.name}".` : 'Inga ändringar gjordes.';
+  if(evicted.length) msg += `\n\nStod på en rad som enligt texten tillhör någon annan och har flyttats:\n  ${evicted.join('\n  ')}`;
   if(noRoom.length) msg += `\n\nIngen ledig plats kvar för: ${noRoom.join(', ')} — lägg till fler platser i gruppen eller ta bort dem ur texten.`;
   alert(msg);
 }
@@ -4519,6 +4607,10 @@ init();
    höj VERSION i sw.js). Efter upplåsning visas det som är nytt sedan
    användaren senast öppnade appen. Ny installation visar ingen notis. */
 const APP_CHANGELOG = [
+  {version:'2026-10-02.2', title:'Rättning 2 oktober 2026', items:[
+    'Import av hela plutonen: personalen hamnar nu i rätt grupp även om grupperna har olika namn hos avsändare och mottagare.',
+    'Import av grupp och av hela plutonen: varje person läggs på exakt samma rad som hos avsändaren, så vakanta rader och befattningsnummer stämmer. Kräver att avsändaren exporterar med den här versionen.'
+  ]},
   {version:'2026-10-02', title:'Uppdatering 2 oktober 2026', items:[
     'Blåbandare är färdigutbildade efter 4 genomförda avtalsövningar (SÖF eller KFÖ), tidigare 8.',
     'Personalrapporten: du väljer själv vilka uppgifter som ska med – befattningsnummer, anställningsnummer, namn, grad och kontaktuppgifter. Valet sparas till nästa gång.',
@@ -4529,7 +4621,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v20';
+const SW_CACHE_VERSION = 'personalregister-v21';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
