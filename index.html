@@ -5109,10 +5109,12 @@ function excerpt(s, n){ s = String(s||'').replace(/\s+/g,' ').trim(); n = n||60;
    KALENDER
    ========================================================================= */
 const CAL_CATS = [
-  {key:'ovning',     label:'Övning',     color:'#4E6B2F'},
-  {key:'utbildning', label:'Utbildning', color:'#1F5FBF'},
-  {key:'ledighet',   label:'Ledighet',   color:'#7A5C99'},
-  {key:'ovrigt',     label:'Övrigt',     color:'#5F6468'},
+  {key:'ovning',            label:'Övning',            color:'#4E6B2F'},
+  {key:'insats',            label:'Insats',            color:'#A23B2C'},
+  {key:'mote',              label:'Möte',              color:'#1F5FBF'},
+  {key:'utvecklingssamtal', label:'Utvecklingssamtal', color:'#7A5C99'},
+  {key:'event',             label:'Event',             color:'#C27A12'},
+  {key:'ovrigt',            label:'Övrigt',            color:'#5F6468'},
 ];
 function catOf(k){ return CAL_CATS.find(c=>c.key===k) || CAL_CATS[CAL_CATS.length-1]; }
 function ensureKalAnslag(d){
@@ -5120,7 +5122,7 @@ function ensureKalAnslag(d){
   if(!Array.isArray(d.kalender.events)) d.kalender.events = [];
   if(!d.kalender.ack || typeof d.kalender.ack!=='object') d.kalender.ack = {};
   if(!Array.isArray(d.kalender.deleted)) d.kalender.deleted = [];
-  d.kalender.events.forEach(ev=>{ if(!Array.isArray(ev.reminders)) ev.reminders = []; if(!Array.isArray(ev.removedRemIds)) ev.removedRemIds = []; });
+  d.kalender.events.forEach(ev=>{ if(!CAL_CATS.some(c=>c.key===ev.category)) ev.category = 'ovrigt'; if(!Array.isArray(ev.reminders)) ev.reminders = []; if(!Array.isArray(ev.removedRemIds)) ev.removedRemIds = []; });
   if(!d.anslag || typeof d.anslag!=='object') d.anslag = {};
   if(!Array.isArray(d.anslag.notes)) d.anslag.notes = [];
   if(!Array.isArray(d.anslag.deleted)) d.anslag.deleted = [];
@@ -6163,6 +6165,9 @@ init();
    höj VERSION i sw.js). Efter upplåsning visas det som är nytt sedan
    användaren senast öppnade appen. Ny installation visar ingen notis. */
 const APP_CHANGELOG = [
+  {version:'2026-10-07.2', title:'Rättning 7 oktober 2026', items:[
+    'Nya kategorier för kalenderhändelser: Övning, Insats, Möte, Utvecklingssamtal, Event och Övrigt. Händelser med de tidigare kategorierna Utbildning och Ledighet flyttas till Övrigt.'
+  ]},
   {version:'2026-10-07', title:'Uppdatering 7 oktober 2026', items:[
     'Gruppvyn: knapparna för att flytta, kopiera och redigera ligger nu först på raden, direkt intill namnet, som kompakta ikonknappar. Håll över en knapp för att se vad den gör.',
     'Grupperna på startsidan kan fällas ihop med ▼ så att bara rubriken syns. Knapparna "Fäll ihop alla" och "Fäll ut alla" finns i verktygsraden. Valet sparas på enheten.',
@@ -6188,7 +6193,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v22';
+const SW_CACHE_VERSION = 'personalregister-v23';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){

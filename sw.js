@@ -1,7 +1,7 @@
 /* Service worker för Personalregister.
    Höj VERSION vid varje ny uppladdning så att gamla filer rensas.
    Ändra samtidigt SW_CACHE_VERSION i index.html till samma värde. */
-const VERSION = 'personalregister-v22';
+const VERSION = 'personalregister-v23';
 const CORE = [
   './',
   './index.html',
