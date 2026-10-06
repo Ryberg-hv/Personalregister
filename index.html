@@ -538,6 +538,256 @@
     .mini-table th,.mini-table td{padding:7px 10px;}
     table.exercise th,table.exercise td{padding:6px 7px;}
   }
+
+  /* =====================================================================
+     OKTOBER 2026: ikonknappar, hopfällbara grupper, räknare, kalender,
+     anslagstavla
+     ===================================================================== */
+  /* ---------- ikonknappar i gruppvyn (första kolumnen) ---------- */
+  table.full td.actions.lead{text-align:left;width:1%;padding-right:4px;}
+  table.full th.leadHead{width:1%;}
+  .rowActions.lead{justify-content:flex-start;flex-wrap:nowrap;gap:3px;}
+  .iconBtn{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:28px;height:28px;padding:0;flex:none;
+    background:var(--panel);border:1px solid var(--line-strong);border-radius:var(--radius);
+    color:var(--ink-soft);font-size:13px;line-height:1;
+  }
+  .iconBtn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+  .iconBtn:disabled{opacity:.3;cursor:not-allowed;background:var(--panel);color:var(--ink-soft);border-color:var(--line-strong);}
+  .iconBtn.danger{color:var(--danger);border-color:var(--danger);}
+  .iconBtn.danger:hover{background:var(--danger-soft);}
+  .iconBtn.copied{color:#2f6b3a;}
+  .iconSelect{position:relative;display:inline-flex;width:28px;height:28px;flex:none;}
+  .iconSelect span{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;
+    border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--panel);color:var(--ink-soft);
+  }
+  .iconSelect:hover span{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+  .iconSelect select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px;}
+  .noticeDot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:6px;vertical-align:middle;background:var(--warn);}
+  .noticeDot.red{background:var(--danger);}
+
+  /* ---------- hopfällbara gruppkort ---------- */
+  .collapseBtn{
+    display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;
+    border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);color:var(--ink-soft);
+    font-size:12px;flex:none;transition:transform .15s;
+  }
+  .collapseBtn:hover{border-color:var(--accent);color:var(--accent);}
+  .card.collapsed .collapseBtn{transform:rotate(-90deg);}
+  .card.collapsed .card-head{border-bottom:none;}
+  .card.collapsed .card-body{display:none;}
+  .card-title{display:flex;align-items:center;gap:8px;min-width:0;}
+  .card.collapsed .card-head .cardOnlyOpen{display:none;}
+
+  /* ---------- räknare per avsnitt ---------- */
+  .secBadge{
+    display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 7px;
+    border-radius:11px;border:none;font-size:12px;font-weight:700;color:#fff;background:var(--warn);
+    font-family:var(--font-body);cursor:pointer;line-height:1;
+  }
+  .secBadge.red{background:var(--danger);}
+  .secBadge:hover{filter:brightness(1.1);}
+  .noticeFilterBar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 16px;background:var(--accent-soft);font-size:12px;border-bottom:1px solid var(--line);}
+  .noticeHeadRow{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .noticeItem.calendar{background:#E6EEF8;border-color:#A9C0DF;}
+  .noticeItem.boardnote{background:#FFF6C2;border-color:#E2CF63;}
+  .noticeItem.gallring{background:var(--danger-soft);border-color:#D9A79F;}
+  .noticeItem.lvl-red{border-left:4px solid var(--danger);}
+  .noticeItem.lvl-orange{border-left:4px solid var(--warn);}
+  .notifToggle{background:none;border:1px solid var(--line);border-radius:var(--radius);padding:2px 7px;font-size:12px;color:var(--ink-soft);}
+  .notifToggle:hover{border-color:var(--accent);color:var(--accent);}
+  .notifToggle.on{color:var(--accent);border-color:var(--accent);background:var(--accent-soft);}
+
+  /* ---------- sektioner under grupperna ---------- */
+  .homeSection{
+    background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--navy);
+    border-radius:var(--radius);margin-top:18px;overflow:hidden;
+  }
+  .homeSection.board{border-left-color:var(--accent-bright);}
+  .secHead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line);}
+  .secHead h3{font-size:17px;display:flex;align-items:center;gap:8px;}
+  .secTools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .homeSection.collapsed .secHead{border-bottom:none;}
+  .homeSection.collapsed .secBody{display:none;}
+  .homeSection.collapsed .collapseBtn{transform:rotate(-90deg);}
+  .homeSection.collapsed .secHead .cardOnlyOpen{display:none;}
+  .segmented{display:inline-flex;border:1px solid var(--line-strong);border-radius:var(--radius);overflow:hidden;}
+  .segmented button{border:none;background:var(--panel);padding:5px 12px;font-size:12px;font-weight:600;color:var(--ink-soft);border-right:1px solid var(--line-strong);}
+  .segmented button:last-child{border-right:none;}
+  .segmented button.on{background:var(--navy);color:#fff;}
+  .calNav{display:flex;align-items:center;gap:6px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  .calNav .calLabel{font-family:var(--font-head);font-size:16px;margin-left:6px;}
+  .calNav .calLabel .wk{font-family:var(--font-body);font-weight:700;color:var(--navy);background:#E6EEF8;border-radius:10px;padding:1px 8px;font-size:13px;margin-left:6px;}
+  .calLegend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--ink-soft);margin-left:auto;}
+  .calLegend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px;}
+
+  /* månad */
+  .calMonth{display:grid;grid-template-columns:44px repeat(7,minmax(0,1fr));}
+  .calMonth .dh{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);font-weight:700;padding:6px 6px;border-bottom:1px solid var(--line);text-align:left;}
+  .calMonth .wkCell{
+    display:flex;align-items:flex-start;justify-content:center;padding-top:6px;
+    font-weight:700;font-size:13px;color:var(--navy);background:#F2F5FA;border-bottom:1px solid var(--line);border-right:1px solid var(--line);cursor:pointer;
+  }
+  .calMonth .wkCell:hover{background:#E6EEF8;}
+  .calDay{min-height:96px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:4px 4px 6px;cursor:pointer;position:relative;min-width:0;}
+  .calDay:nth-child(8n){border-right:none;}
+  .calDay:hover{background:#FAF9F5;}
+  .calDay.out{background:#FBFBF9;}
+  .calDay.out .dnum{color:var(--line-strong);}
+  .calDay .dnum{font-size:12px;font-weight:700;color:var(--ink-soft);display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:11px;}
+  .calDay.today .dnum{background:var(--navy);color:#fff;}
+  .calDay.weekend .dnum{color:var(--danger);}
+  .calDay.today.weekend .dnum{color:#fff;}
+  .remDot{position:absolute;top:8px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--warn);}
+  .remDot.red{background:var(--danger);}
+  .evChip{
+    display:block;width:100%;text-align:left;border:none;border-radius:3px;padding:2px 5px;margin-top:2px;
+    font-size:11px;line-height:1.35;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
+  }
+  .evChip:hover{filter:brightness(1.12);}
+  .evChip.cancelled{text-decoration:line-through;opacity:.55;}
+  .evChip .t{font-weight:700;margin-right:3px;}
+  .moreLink{font-size:11px;color:var(--ink-soft);padding:1px 4px;font-weight:600;}
+
+  /* vecka */
+  .calWeekWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .calWeek{min-width:720px;display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr));}
+  .calWeek .wh{padding:6px 6px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);font-size:12px;cursor:pointer;}
+  .calWeek .wh:hover{background:#FAF9F5;}
+  .calWeek .wh .wd{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);font-weight:700;}
+  .calWeek .wh .dd{font-size:18px;font-weight:700;color:var(--ink-soft);}
+  .calWeek .wh.today .dd{color:var(--navy);}
+  .calWeek .wh.today{background:#E6EEF8;}
+  .calWeek .wh.weekend .dd{color:var(--danger);}
+  .calWeek .wkBig{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#F2F5FA;border-bottom:1px solid var(--line);border-right:1px solid var(--line);}
+  .calWeek .wkBig b{font-size:17px;color:var(--navy);}
+  .calWeek .wkBig small{font-size:9px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.06em;}
+  .calWeek .alldayLbl{font-size:9px;color:var(--ink-faint);text-transform:uppercase;padding:4px;border-bottom:1px solid var(--line-strong);border-right:1px solid var(--line);text-align:center;}
+  .calWeek .allday{border-bottom:1px solid var(--line-strong);border-right:1px solid var(--line);padding:2px 3px 4px;min-height:26px;cursor:pointer;min-width:0;}
+  .calWeek .hours{border-right:1px solid var(--line);}
+  .calWeek .hours div{height:36px;font-size:10px;color:var(--ink-faint);text-align:right;padding:0 5px;transform:translateY(-6px);}
+  .calWeek .hours div:first-child{transform:none;}
+  .calWeek .dayCol{position:relative;border-right:1px solid var(--line);cursor:pointer;
+    background-image:repeating-linear-gradient(to bottom, transparent 0, transparent 35px, var(--line) 35px, var(--line) 36px);}
+  .calWeek .dayCol.today{background-color:#F6F9FD;}
+  .calWeek .tEv{position:absolute;border-radius:3px;padding:2px 4px;font-size:11px;color:#fff;overflow:hidden;cursor:pointer;line-height:1.25;border:1px solid rgba(255,255,255,.6);}
+  .calWeek .tEv.cancelled{text-decoration:line-through;opacity:.55;}
+  .calWeek .nowLine{position:absolute;left:0;right:0;height:2px;background:var(--danger);z-index:3;pointer-events:none;}
+
+  /* år */
+  .calYear{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:14px 16px;}
+  .miniMonth h4{font-size:13px;margin:0 0 4px;cursor:pointer;color:var(--navy);font-family:var(--font-head);}
+  .miniMonth h4:hover{text-decoration:underline;}
+  .miniMonth table{border-collapse:collapse;width:100%;table-layout:fixed;}
+  .miniMonth th{font-size:9px;color:var(--ink-faint);font-weight:700;padding:2px 0;text-align:center;}
+  .miniMonth td{font-size:11px;text-align:center;padding:2px 0;cursor:pointer;border-radius:3px;position:relative;}
+  .miniMonth td:hover{background:var(--accent-soft);}
+  .miniMonth td.wk{color:var(--navy);font-weight:700;background:#F2F5FA;font-size:10px;}
+  .miniMonth td.out{color:transparent;cursor:default;}
+  .miniMonth td.out:hover{background:none;}
+  .miniMonth td.has{font-weight:700;color:#fff;}
+  .miniMonth td.today{outline:2px solid var(--navy);outline-offset:-2px;}
+  .miniMonth td.weekend:not(.has){color:var(--danger);}
+  .miniMonth td .mdot{position:absolute;top:1px;right:1px;width:5px;height:5px;border-radius:50%;background:var(--warn);}
+  .miniMonth td .mdot.red{background:var(--danger);}
+
+  /* händelseformulär */
+  .remRow{display:grid;grid-template-columns:150px 1fr 96px 30px;gap:6px;align-items:center;margin-bottom:6px;}
+  .remRow input,.remRow select{width:100%;border:1px solid var(--line-strong);border-radius:var(--radius);padding:6px 7px;}
+  .remRow .remText{grid-column:1/-2;}
+  .remBox{border:1px solid var(--line);border-radius:var(--radius);padding:10px;background:#FAF9F5;}
+  .remBox .remItem{border-bottom:1px dashed var(--line-strong);padding-bottom:6px;margin-bottom:8px;}
+  .remBox .remItem:last-of-type{border-bottom:none;margin-bottom:4px;}
+  .wkHint{font-size:11px;color:var(--navy);font-weight:700;margin-left:6px;}
+  .evPickList{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius);padding:6px 10px;margin:8px 0;}
+  .evPickList label{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .evPickList label:last-child{border-bottom:none;}
+  .evPickList .sw{width:10px;height:10px;border-radius:2px;flex:none;}
+  .evPickList .meta{color:var(--ink-faint);font-size:11px;margin-left:auto;white-space:nowrap;}
+  .exportExtras{border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;background:#FAF9F5;}
+  .exportExtras .checkwrap{font-size:13px;margin:4px 0;}
+
+  /* ---------- anslagstavla ---------- */
+  .boardOuter{position:relative;overflow:hidden;background:#8B6A43;padding:10px;}
+  .boardOuter.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .boardViewport{position:relative;}
+  .boardCanvas{
+    position:absolute;left:0;top:0;width:1200px;transform-origin:0 0;
+    background-color:#C69C6D;
+    background-image:
+      radial-gradient(rgba(90,60,30,.18) 1px, transparent 1.4px),
+      radial-gradient(rgba(255,255,255,.10) 1px, transparent 1.6px);
+    background-size:9px 9px, 13px 13px;
+    background-position:0 0, 4px 6px;
+    box-shadow:inset 0 0 0 3px rgba(60,40,20,.35), inset 0 0 40px rgba(60,40,20,.35);
+    border-radius:3px;
+  }
+  .boardEmpty{position:absolute;left:0;right:0;top:40%;text-align:center;color:rgba(255,255,255,.85);font-size:20px;font-family:var(--font-head);pointer-events:none;}
+  .note{
+    position:absolute;width:180px;min-height:160px;padding:0 10px 10px;
+    box-shadow:0 6px 10px rgba(0,0,0,.28), 0 1px 2px rgba(0,0,0,.2);
+    border-radius:2px 2px 6px 2px;display:flex;flex-direction:column;
+    transition:box-shadow .15s;
+  }
+  .note.dragging{box-shadow:0 14px 26px rgba(0,0,0,.35);transition:none;}
+  .note .grip{
+    height:30px;margin:0 -10px;padding:0 6px;display:flex;align-items:center;justify-content:space-between;
+    cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;position:relative;
+  }
+  .note.dragging .grip{cursor:grabbing;}
+  .note .pin{
+    position:absolute;left:50%;top:-7px;width:16px;height:16px;margin-left:-8px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #ff8a80, #c62828 60%, #7f1010);
+    box-shadow:1px 3px 3px rgba(0,0,0,.35);
+  }
+  .note .ntools{display:flex;gap:2px;margin-left:auto;}
+  .note .ntools button{
+    width:24px;height:24px;border:none;background:transparent;border-radius:3px;padding:0;
+    font-size:13px;color:rgba(0,0,0,.55);display:inline-flex;align-items:center;justify-content:center;
+  }
+  .note .ntools button:hover{background:rgba(0,0,0,.08);color:#000;}
+  .note .ntools button.bellOn{color:#000;}
+  .note .ntools button.ring{color:var(--danger);animation:ring 1.4s ease-in-out infinite;}
+  @keyframes ring{0%,60%,100%{transform:rotate(0)}10%{transform:rotate(16deg)}20%{transform:rotate(-14deg)}30%{transform:rotate(10deg)}40%{transform:rotate(-6deg)}}
+  .note textarea{
+    flex:1;width:100%;min-height:112px;border:none;background:transparent;resize:none;padding:0;
+    font-family:'Segoe Print','Bradley Hand','Comic Sans MS',var(--font-body);font-size:15px;line-height:1.3;color:#222;
+  }
+  .note textarea:focus{outline:none;}
+  .note .ndate{font-size:11px;font-weight:700;color:rgba(0,0,0,.6);margin-top:4px;}
+  .note .ndate.warn{color:var(--warn);}
+  .note .ndate.due{color:var(--danger);}
+  .note.due{outline:3px solid var(--danger);outline-offset:2px;}
+  .note.flash{animation:flash 1.2s ease-in-out 2;}
+  @keyframes flash{50%{outline:4px solid var(--navy);outline-offset:4px;}}
+  .note .palette{display:none;position:absolute;left:6px;right:6px;top:30px;z-index:5;background:#fff;border-radius:4px;padding:6px;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,.25);justify-content:space-between;}
+  .note.showColors .palette{display:flex;}
+  .palette button{width:22px;height:22px;border-radius:50%;border:2px solid rgba(0,0,0,.15);padding:0;}
+  .palette button.on{border-color:#000;}
+  .doneHeap{border-top:1px solid var(--line);}
+  .doneHeap summary{padding:10px 16px;cursor:pointer;font-weight:600;font-size:13px;color:var(--ink-soft);}
+  .doneList{display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 14px;}
+  .doneNote{width:170px;padding:8px 10px;font-size:12px;border-radius:2px;opacity:.85;box-shadow:0 2px 4px rgba(0,0,0,.18);}
+  .doneNote .txt{text-decoration:line-through;color:#333;white-space:pre-wrap;max-height:70px;overflow:hidden;}
+  .doneNote .meta{font-size:10px;color:rgba(0,0,0,.55);margin:4px 0;}
+
+  @media (max-width:760px){
+    .calMonth{grid-template-columns:30px repeat(7,minmax(0,1fr));}
+    .calMonth .wkCell{font-size:10px;}
+    .calDay{min-height:64px;padding:2px 2px 4px;}
+    .calDay .dnum{font-size:11px;min-width:18px;height:18px;}
+    .evChip{font-size:9px;padding:1px 2px;}
+    .evChip .t{display:none;}
+    .calYear{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:10px;}
+    .remRow{grid-template-columns:1fr 1fr;}
+    .remRow .remText{grid-column:1/-1;}
+    .calLegend{display:none;}
+    .secHead{padding:10px 12px;}
+    .iconBtn,.iconSelect{width:31px;height:32px;}
+    .rowActions.lead{gap:2px;}
+  }
 </style>
 </head>
 <body>
@@ -1026,6 +1276,7 @@ function hydrateData(parsed){
   ensureNotiser(parsed);
   if(parsed.kompani===undefined) parsed.kompani = '';
   if(parsed.pluton===undefined) parsed.pluton = '';
+  ensureKalAnslag(parsed);
   DATA = parsed;
   YEARS = computeYears();
   DATA.persons = (DATA.persons||[]).map(ensurePersonShape);
@@ -1390,6 +1641,7 @@ function openExportModal(scope, gid){
   overlay.innerHTML = `<div class="modal">
     <h3>${esc(title)}</h3>
     ${scope==='group' && groupKind(gid)==='recruit' ? `<div class="banner info" style="margin-bottom:12px;">Endast markerad personal exporteras: <strong>${exportPersonsForGroup(gid).length} av ${personsInGroup(gid).length}</strong> markerade.${exportPersonsForGroup(gid).length ? '' : ' Markera personal med kryssrutorna i gruppen eller på startsidan.'}</div>` : ''}
+    ${scope==='all' ? exportExtrasHtml() : ''}
     <p style="color:var(--ink-soft);font-size:13px;margin-bottom:16px;">Exporten innehåller all personaldata: kontaktuppgifter, kompetenser, avtalsår innan ${YEAR_START}, avtalsövningar och utvecklingsplan per år.</p>
     <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;gap:8px;">
       <button class="btn primary" onclick="${slackAction}">🔒 Krypterad text (Slack m.fl.)</button>
@@ -1600,7 +1852,7 @@ async function importFullFromTextarea(){
   try{ text = await openSharedText(document.getElementById('impText').value); }
   catch(e){ if(e && e.message!=='avbrutet') alert('Texten kunde inte låsas upp: '+(e.message||e)); return; }
   if(text==null) return;
-  confirmFullSlackImport(text);
+  routeImport(text, t=>confirmFullSlackImport(t));
 }
 /* ---------- platsmärkning i exporten ----------
    Varje person i en export får raden "Plats: <app> <grupp-id> rad <n>".
@@ -1791,7 +2043,7 @@ async function confirmSlackImport(gid){
   try{ text = await openSharedText(document.getElementById('slackImportText').value); }
   catch(e){ if(e && e.message!=='avbrutet') alert('Texten kunde inte låsas upp: '+(e.message||e)); return; }
   if(text==null) return;
-  confirmSlackImportText(gid, text);
+  routeImport(text, t=>confirmSlackImportText(gid, t));
 }
 /* Import av EN grupp. Personer matchas via namn mot gruppens personal.
    Har texten platsmärkning läggs varje person på exakt den rad den hade
@@ -2370,8 +2622,8 @@ function traineeTitle(p){
 function nameStrong(p, raw){
   const txt = esc(raw!==undefined ? raw : p.namn);
   return isTrainee(p)
-    ? `<strong class="trainee" title="${esc(traineeTitle(p))}">${txt}</strong>`
-    : `<strong>${txt}</strong>`;
+    ? `<strong class="trainee" title="${esc(traineeTitle(p))}">${txt}</strong>${noticeDotHtml(p)}`
+    : `<strong>${txt}</strong>${noticeDotHtml(p)}`;
 }
 function gradeTest(def, p){
   if(isTrainee(p)) return def.level===1; // blåbandare kan endast ha graden Menig
@@ -2434,7 +2686,7 @@ function computeNotices(){
           ? `${c.label} gick ut ${st.utgangsdatum}`
           : `${c.label} går ut ${st.utgangsdatum} (${daysLeft} dagar kvar)`;
         notices.push({
-          kind:'expiry', groupName:gName, personName:fullName(p), text:desc,
+          kind:'expiry', gid:p.groupId, pid:p.id, level: daysLeft<0 ? 'red' : 'orange', groupName:gName, personName:fullName(p), text:desc,
           sortKey:daysLeft,
           ackCall:`ackExpiryNotice('${p.id}','${c.id}','${st.utgangsdatum}',${months})`
         });
@@ -2442,7 +2694,7 @@ function computeNotices(){
     });
     if(isTrainee(p) && exerciseCount(p)>=GRUNDUTB_KRAV){
       notices.push({
-        kind:'training', groupName:gName, personName:fullName(p),
+        kind:'training', gid:p.groupId, pid:p.id, groupName:gName, personName:fullName(p),
         text:`Har genomfört ${GRUNDUTB_KRAV} avtalsövningar (SÖF/KFÖ) och är nu klar med sin grundutbildning`,
         sortKey:-200000,
         ackCall:`ackTrainingNotice('${p.id}')`
@@ -2454,7 +2706,7 @@ function computeNotices(){
     /* blåbandare är alltid Menig — ingen gradnotis förrän grundutbildningen är noterad */
     if(curLabel && curLabel!==ackLabel && !isTrainee(p)){
       notices.push({
-        kind:'grade', groupName:gName, personName:fullName(p),
+        kind:'grade', gid:p.groupId, pid:p.id, groupName:gName, personName:fullName(p),
         text:`Uppfyller nu kraven för graden ${curLabel}`,
         sortKey:-100000,
         ackCall:`ackGradeNotice('${p.id}','${curLabel.replace(/'/g,"\\'")}')`
@@ -2470,7 +2722,7 @@ function computeNotices(){
       ? `raden med det numret i ${tName} är redan upptagen`
       : `numret matchar ingen rad i ${tName}`;
     notices.push({
-      kind:'move', groupName:tName, personName:fullName(p),
+      kind:'move', gid:n.toGid, pid:p.id, groupName:tName, personName:fullName(p),
       text:`Tidigare angivet befattningsnummer ${n.prevBefattningsnummer} kunde inte användas (${why}). Personen har placerats på första lediga rad och det tidigare numret har tagits bort.`,
       sortKey:-300000,
       ackCall:`ackMoveNotice('${n.id}')`,
@@ -2526,10 +2778,10 @@ function undoMoveNotice(nid){
 }
 function renderNoticeList(notices){
   if(!notices.length) return `<div class="noticeEmpty">Inga notiser just nu.</div>`;
-  return notices.map(n=>`<div class="noticeItem ${n.kind}">
+  return notices.map(n=>`<div class="noticeItem ${n.kind} lvl-${n.level||'orange'}">
     <div class="noticeGroup">${esc(n.groupName)}</div>
-    <div class="noticeText"><strong>${esc(n.personName)}</strong> – ${esc(n.text)}</div>
-    <button class="btn tiny" onclick="${n.ackCall}">Noterat</button>${n.undoCall ? ` <button class="btn tiny" onclick="${n.undoCall}">Ångra flytt</button>` : ''}
+    <div class="noticeText">${n.personName ? `<strong>${esc(n.personName)}</strong> – ` : ''}${esc(n.text)}</div>
+    <button class="btn tiny" onclick="${n.ackCall}">${esc(n.ackLabel||'Noterat')}</button>${n.showCall ? ` <button class="btn tiny" onclick="${n.showCall}">Visa</button>` : ''}${n.undoCall ? ` <button class="btn tiny" onclick="${n.undoCall}">Ångra flytt</button>` : ''}
   </div>`).join('');
 }
 
@@ -2669,6 +2921,7 @@ function renderAll(){
   const vk = view.name+'|'+(view.gid||'')+'|'+(view.pid||'')+'|'+(view.tab||'');
   if(vk!==lastRenderedViewKey){ lastRenderedViewKey = vk; window.scrollTo(0,0); }
   if(DATA) YEARS = computeYears();
+  if(DATA) refreshNoticeCache();
   renderTopbar();
   const app = document.getElementById('app');
   if(!DATA){ app.innerHTML = renderSetup(); return; }
@@ -2679,6 +2932,7 @@ function renderAll(){
   else if(view.name==='stats') app.innerHTML = renderStats();
   else if(view.name==='gradoverview') app.innerHTML = renderGradOverview();
   else app.innerHTML = renderHome();
+  afterRender();
 }
 
 /* ---------- setup view ---------- */
@@ -2757,31 +3011,36 @@ function renderBackupBanner(){
 /* ---------- home view (full-width rows) ---------- */
 function renderHome(){
   const cards = DATA.groups.map(g=> g.kind==='standard' ? renderStandardCard(g) : renderFlexibleCard(g)).join('');
-  const notices = computeNotices();
+  const allNotices = NOTICES_CACHE;
+  const notices = filterNotices(allNotices);
   const totalPersons = DATA.persons.length;
   return `
     ${renderInstallBanner()}
     ${renderBackupBanner()}
     <div class="viewhead">
       <div>
-        <div class="sub">Klicka på en grupps namn eller "Öppna gruppen" för att redigera, flytta personal och se kompetenser.</div>
+        <div class="sub">Klicka på en grupps namn eller "Öppna gruppen" för att redigera, flytta personal och se kompetenser. Fäll ihop grupper du inte arbetar med med ▼.</div>
       </div>
     </div>
     ${columnPanelOpen ? renderColumnPanel() : ''}
     <div id="homeLayout">
       <div id="noticeBox">
-        <div class="noticeHead">Notiser ${notices.length ? `<span class="count">(${notices.length})</span>` : ''}</div>
+        ${renderNoticeHead(allNotices, notices)}
         <div class="noticeList">${renderNoticeList(notices)}</div>
       </div>
       <div id="homeGroups">
         <div id="reportToolbar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
           <button class="btn small" onclick="selectAllPersons()">Markera allt</button>
           <button class="btn small" onclick="deselectAllPersons()">Avmarkera allt</button>
+          <button class="btn small" onclick="collapseAllGroups(true)" title="Visa bara gruppernas rubriker">Fäll ihop alla</button>
+          <button class="btn small" onclick="collapseAllGroups(false)">Fäll ut alla</button>
           <button class="btn primary small" onclick="openReportModal()">Generera personalrapport</button>
           <button class="btn primary small" onclick="openExerciseReportModal()">Generera övningsanmälan</button>
           <span class="status" style="color:rgba(255,255,255,.78);align-self:center;">${selectedPersons.size} av ${totalPersons} markerade</span>
         </div>
         <div id="groupGrid">${cards}</div>
+        ${renderCalendarSection()}
+        ${renderBoardSection()}
       </div>
     </div>
   `;
@@ -2813,17 +3072,17 @@ function renderStandardCard(g){
         return `<div style="padding:8px 14px;font-size:12px;color:${st.full?'var(--accent)':'var(--warn)'};">${st.full ? `Grupp 1–5 fulltaliga — reserven kan användas.` : `Grupp 1–5 har ${st.vacant} lediga platser kvar innan reserven är avsedd att användas.`}</div>`;
       })()
     : '';
-  return `<div class="card kind-standard">
+  return `<div class="card kind-standard ${isCollapsed(g.id)?'collapsed':''}">
     <div class="card-head">
-      <h3 id="gname-${g.id}" onclick="editGroupName('${g.id}')">${esc(g.name)}</h3>
+      <div class="card-title">${collapseBtnHtml(g.id)}<h3 id="gname-${g.id}" onclick="editGroupName('${g.id}')">${esc(g.name)}</h3>${sectionBadge('g:'+g.id)}</div>
       <div style="display:flex;align-items:center;gap:12px;">
         <span class="card-count">${filled}/${g.slots.length} platser fyllda</span>
-        <button class="btn small" onclick="openExportModal('group','${g.id}')">Exportera</button>
-        <button class="btn small" onclick="openSlackImportModal('${g.id}')">Importera från Slack</button>
+        <button class="btn small cardOnlyOpen" onclick="openExportModal('group','${g.id}')">Exportera</button>
+        <button class="btn small cardOnlyOpen" onclick="openSlackImportModal('${g.id}')">Importera från Slack</button>
         <button class="btn small" onclick="goGroup('${g.id}')">Öppna gruppen →</button>
       </div>
     </div>
-    <div style="overflow-x:auto;">
+    <div class="card-body"><div style="overflow-x:auto;">
     <table class="mini-table">
       <thead><tr><th style="width:1%;"></th>${cols.map(c=>`<th>${esc(c.label)}</th>`).join('')}</tr></thead>
       <tbody>${body}</tbody>
@@ -2831,6 +3090,7 @@ function renderStandardCard(g){
     </div>
     ${overflowNote}
     ${reserveNote}
+    </div>
   </div>`;
 }
 
@@ -2850,22 +3110,22 @@ function renderFlexibleCard(g){
   const rows = people.length
     ? people.map(p=>`<tr class="datarow" onclick="goGroup('${g.id}')"><td style="width:1%;" onclick="event.stopPropagation()"><input type="checkbox" ${selectedPersons.has(p.id)?'checked':''} onchange="togglePersonSelected('${p.id}')"></td>${cols.map(c=>rowCell(p,c)).join('')}${showStep?`<td>${esc(recruitStepText(p))}</td>`:''}</tr>`).join('')
     : `<tr class="empty-row"><td style="width:1%;"></td><td colspan="${cols.length+(showStep?1:0)}">Ingen personal registrerad ännu</td></tr>`;
-  return `<div class="card kind-${g.kind}">
+  return `<div class="card kind-${g.kind} ${isCollapsed(g.id)?'collapsed':''}">
     <div class="card-head">
-      <h3 id="gname-${g.id}" onclick="editGroupName('${g.id}')">${esc(g.name)}</h3>
+      <div class="card-title">${collapseBtnHtml(g.id)}<h3 id="gname-${g.id}" onclick="editGroupName('${g.id}')">${esc(g.name)}</h3>${sectionBadge('g:'+g.id)}</div>
       <div style="display:flex;align-items:center;gap:12px;">
         <span class="card-count">${people.length} st</span>
-        <button class="btn small" onclick="openExportModal('group','${g.id}')">Exportera</button>
-        <button class="btn small" onclick="openSlackImportModal('${g.id}')">Importera från Slack</button>
+        <button class="btn small cardOnlyOpen" onclick="openExportModal('group','${g.id}')">Exportera</button>
+        <button class="btn small cardOnlyOpen" onclick="openSlackImportModal('${g.id}')">Importera från Slack</button>
         <button class="btn small" onclick="goGroup('${g.id}')">Öppna gruppen →</button>
       </div>
     </div>
-    <div style="overflow-x:auto;">
+    <div class="card-body"><div style="overflow-x:auto;">
     <table class="mini-table">
       <thead><tr><th style="width:1%;"></th>${cols.map(c=>`<th>${esc(c.label)}</th>`).join('')}${showStep?'<th>Rekryteringssteg</th>':''}</tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    </div>
+    </div></div>
   </div>`;
 }
 
@@ -2950,19 +3210,16 @@ function renderGroupStandard(gid){
         return taken ? '' : `<option value="${i}">${esc(s.befattning||('Plats '+(i+1)))}</option>`;
       }).join('');
       return `<tr class="datarow">
-        <td colspan="${cols.length}" style="font-style:italic;color:var(--warn);">Utan fast plats: <span class="${isTrainee(p)?'trainee':''}">${esc(fullName(p))}</span>${p.befattning?' ('+esc(personBefattningDisplay(p))+')':''}</td>
-        <td class="actions"><div class="rowActions">
+        <td class="actions lead"><div class="rowActions lead">
           <select onchange="if(this.value!==''){assignPersonToSlot('${p.id}','${gid}',this.value);}">
             <option value="">Tilldela plats…</option>
             ${vacantOptions}
           </select>
-          <select onchange="if(this.value){movePersonToGroup('${p.id}', this.value); this.value='';}">
-            <option value="">Flytta till annan grupp…</option>
-            ${otherGroups.map(og=>`<option value="${og.id}">${esc(og.name)}</option>`).join('')}
-          </select>
-          <button class="btn small" onclick="copyPersonInfo('${p.id}', this)">Kopiera</button>
-          <button class="btn small" onclick="openPersonForm('${gid}','${p.id}')">Redigera</button>
+          <label class="iconSelect" title="Flytta till annan grupp"><span>${ICON.move}</span><select aria-label="Flytta till annan grupp" onchange="if(this.value){movePersonToGroup('${p.id}', this.value); this.value='';}"><option value="">Flytta till annan grupp…</option>${otherGroups.map(og=>`<option value="${og.id}">${esc(og.name)}</option>`).join('')}</select></label>
+          <button class="iconBtn" onclick="copyPersonInfoIcon('${p.id}', this)" title="Kopiera personens uppgifter">${copyIconSVG()}</button>
+          <button class="iconBtn" onclick="openPersonForm('${gid}','${p.id}')" title="Redigera">${ICON.edit}</button>
         </div></td>
+        <td colspan="${cols.length}" style="font-style:italic;color:var(--warn);">Utan fast plats: <span class="${isTrainee(p)?'trainee':''}">${esc(fullName(p))}</span>${p.befattning?' ('+esc(personBefattningDisplay(p))+')':''}</td>
       </tr>`;
     }
     const p = row.person;
@@ -2988,18 +3245,10 @@ function renderGroupStandard(gid){
       return `<td style="color:var(--ink-faint);">–</td>`;
     }).join('');
     const actions = p
-      ? `<div class="rowActions">
-          <button class="btn tiny" ${row.idx===0?'disabled':''} onclick="movePerson('${p.id}',-1)" title="Byt till platsen ovanför">↑</button>
-          <button class="btn tiny" ${row.idx===g.slots.length-1?'disabled':''} onclick="movePerson('${p.id}',1)" title="Byt till platsen nedanför">↓</button>
-          <select onchange="if(this.value){movePersonToGroup('${p.id}', this.value); this.value='';}">
-            <option value="">Flytta till…</option>
-            ${otherGroups.map(og=>`<option value="${og.id}">${esc(og.name)}</option>`).join('')}
-          </select>
-          <button class="btn small" onclick="copyPersonInfo('${p.id}', this)">Kopiera</button>
-          <button class="btn small" onclick="openPersonForm('${gid}','${p.id}')">Redigera</button>
-        </div>`
-      : `<button class="btn small primary" onclick="openPersonForm('${gid}', null, ${row.idx})">+ Tilldela person</button>`;
-    return `<tr class="datarow ${p?'':'vacant'}">${cells}<td class="actions">${actions}</td></tr>`;
+      ? rowActionsHtml(p, gid, {canUp: row.idx!==0, canDown: row.idx!==g.slots.length-1,
+          upTitle:'Byt till platsen ovanför', downTitle:'Byt till platsen nedanför', otherGroups})
+      : `<button class="btn tiny primary" onclick="openPersonForm('${gid}', null, ${row.idx})" title="Tilldela en person till den lediga platsen">+ Tilldela</button>`;
+    return `<tr class="datarow ${p?'':'vacant'}"><td class="actions lead">${actions}</td>${cells}</tr>`;
   }).join('');
 
   return `
@@ -3019,7 +3268,7 @@ function renderGroupStandard(gid){
     ${gid==='g6' ? reserveBanner() : ''}
     <div class="tablewrap">
       <table class="full">
-        <thead><tr>${cols.map(c=>`<th>${esc(c.label)}</th>`).join('')}<th></th></tr></thead>
+        <thead><tr><th class="leadHead"></th>${cols.map(c=>`<th>${esc(c.label)}</th>`).join('')}</tr></thead>
         <tbody>${bodyRows}</tbody>
       </table>
     </div>
@@ -3035,6 +3284,8 @@ function renderGroupFlexible(gid){
 
   const rows = people.length
     ? people.map((p,idx)=>`<tr class="datarow">
+        <td class="actions lead">${rowActionsHtml(p, gid, {canUp: idx!==0, canDown: idx!==people.length-1,
+          upTitle:'Flytta upp', downTitle:'Flytta ner', otherGroups, del: g.kind==='offboarding'})}</td>
         ${isRecruit ? `<td style="width:1%;"><input type="checkbox" title="Markera för export" ${selectedPersons.has(p.id)?'checked':''} onchange="togglePersonSelected('${p.id}')"></td>` : ''}
         ${cols.map(c=>{
           const bold = (c.key==='namn');
@@ -3042,19 +3293,6 @@ function renderGroupFlexible(gid){
           return `<td class="clickable" onclick="goPerson('${p.id}')">${val}</td>`;
         }).join('')}
         ${isRecruit ? `<td class="stepCell">${renderRecruitStepSelect(p)}</td>` : ''}
-        <td class="actions">
-          <div class="rowActions">
-            <button class="btn tiny" ${idx===0?'disabled':''} onclick="movePerson('${p.id}',-1)" title="Flytta upp">↑</button>
-            <button class="btn tiny" ${idx===people.length-1?'disabled':''} onclick="movePerson('${p.id}',1)" title="Flytta ner">↓</button>
-            <select onchange="if(this.value){movePersonToGroup('${p.id}', this.value); this.value='';}">
-              <option value="">Flytta till…</option>
-              ${otherGroups.map(og=>`<option value="${og.id}">${esc(og.name)}</option>`).join('')}
-            </select>
-            <button class="btn small" onclick="copyPersonInfo('${p.id}', this)">Kopiera</button>
-            <button class="btn small" onclick="openPersonForm('${gid}','${p.id}')">Redigera</button>
-            ${g.kind==='offboarding' ? `<button class="btn small danger" onclick="deletePerson('${p.id}')">Ta bort</button>` : ''}
-          </div>
-        </td>
       </tr>`).join('')
     : `<tr><td colspan="${cols.length+(isRecruit?3:1)}" style="color:var(--ink-faint);font-style:italic;">Ingen personal i gruppen ännu.</td></tr>`;
 
@@ -3076,7 +3314,7 @@ function renderGroupFlexible(gid){
     ${columnPanelOpen ? renderColumnPanel() : ''}
     <div class="tablewrap">
       <table class="full">
-        <thead><tr>${isRecruit?`<th style="width:1%;"><input type="checkbox" title="Markera alla" ${people.length && people.every(p=>selectedPersons.has(p.id))?'checked':''} onchange="setGroupSelected('${gid}', this.checked)"></th>`:''}${cols.map(c=>`<th>${esc(c.label)}</th>`).join('')}${isRecruit?'<th>Rekryteringssteg</th>':''}<th></th></tr></thead>
+        <thead><tr><th class="leadHead"></th>${isRecruit?`<th style="width:1%;"><input type="checkbox" title="Markera alla" ${people.length && people.every(p=>selectedPersons.has(p.id))?'checked':''} onchange="setGroupSelected('${gid}', this.checked)"></th>`:''}${cols.map(c=>`<th>${esc(c.label)}</th>`).join('')}${isRecruit?'<th>Rekryteringssteg</th>':''}</tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -4499,15 +4737,18 @@ function askShareCodeModal(text){
 /* ---- exportflödet ---- */
 let shareExportState = null;
 async function openShareExport(scope, gid){
-  let plain, title;
-  if(scope==='group'){
+  let plain, title, kind = scope;
+  if(scope==='custom'){
+    if(!customShare) return;
+    plain = customShare.plain; title = customShare.title; kind = customShare.kind || 'custom';
+  } else if(scope==='group'){
     const g = getGroup(gid);
     if(g && g.kind==='recruit' && !exportPersonsForGroup(gid).length){ alert('Markera minst en person i "'+g.name+'" att exportera.'); return; }
     plain = groupSlackText(gid, true); title = g ? g.name : '';
   } else {
-    plain = allGroupsSlackText(); title = 'hela registret';
+    plain = allGroupsSlackText() + exportExtrasPayload(); title = 'hela registret' + exportExtrasTitle();
   }
-  shareExportState = {plain, title, text:null};
+  shareExportState = {plain, title, text:null, kind};
   const saved = await getRememberedShareCode();
   const modal = document.querySelector('.overlay .modal');
   if(!modal) return;
@@ -4545,7 +4786,7 @@ async function runShareExport(){
   const modal = document.querySelector('.overlay .modal');
   modal.innerHTML = `
     <h3>Klart att skicka</h3>
-    <p style="color:var(--ink-soft);font-size:13px;margin-bottom:10px;">Texten är krypterad (${text.length.toLocaleString('sv-SE')} tecken). Klistra in den i Slack; mottagaren väljer <strong>Importera från Slack</strong> i gruppen eller <strong>Importera personal → Hela plutonen</strong> och anger delningskoden.</p>
+    <p style="color:var(--ink-soft);font-size:13px;margin-bottom:10px;">Texten är krypterad (${text.length.toLocaleString('sv-SE')} tecken). Klistra in den i Slack; ${shareExportState.kind==='kalender' ? 'mottagaren väljer <strong>Importera händelser</strong> i kalendern och anger delningskoden. Händelserna läggs till eller uppdateras — inget tas bort.</p>' : `mottagaren väljer <strong>Importera från Slack</strong> i gruppen eller <strong>Importera personal → Hela plutonen</strong> och anger delningskoden.</p>`}
     ${tooLong ? `<div class="banner" style="margin-bottom:10px;">Texten är lång och kan bli för lång för ett Slack-meddelande. Använd <strong>Spara som fil</strong> och skicka filen i Slack i stället — mottagaren kan välja filen i importdialogen.</div>` : ''}
     <textarea readonly style="width:100%;height:140px;font-family:var(--font-mono);font-size:11px;border:1px solid var(--line-strong);border-radius:var(--radius);padding:8px;">${esc(text)}</textarea>
     <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;">
@@ -4586,6 +4827,1321 @@ function askPinModal(text){
   });
 }
 
+
+/* =========================================================================
+   OKTOBER 2026 — ikonknappar, hopfällbara grupper, räknare per avsnitt,
+   kalender, anslagstavla och påminnelser (telefonnotis + siffra på ikonen).
+
+   Allt nytt sparas i registret (DATA.kalender, DATA.anslag) och krypteras
+   därmed som resten. Enhetsinställningar (hopfällda grupper, kalenderläge,
+   vilka påminnelser som redan visats som telefonnotis) ligger i
+   localStorage och innehåller inga personuppgifter.
+
+   Påminnelser (alternativ A): appen har ingen server. Påminnelser visas i
+   notisrutan och — om användaren slagit på det — som telefonnotis när
+   appen är öppen/öppnas. Siffran på appikonen sätts varje gång appen körs.
+   ========================================================================= */
+const LSP = LS_REGISTRY.replace(/_registry$/,'');
+const APP_TITLE = (LSP==='gruppregister') ? 'Gruppregister' : 'Personalregister';
+function lsGet(k, def){
+  try{ const v = localStorage.getItem(LSP+'_'+k); return v==null ? def : JSON.parse(v); }catch(e){ return def; }
+}
+function lsSet(k, v){ try{ localStorage.setItem(LSP+'_'+k, JSON.stringify(v)); }catch(e){} }
+const SAFE_ID_RE = /^[A-Za-z0-9_-]{4,64}$/;
+
+/* ---------- ikoner ---------- */
+const ICON = {
+  up:   '<svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15.5V4.5M5 9.5l5-5 5 5"/></svg>',
+  down: '<svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4.5v11M5 10.5l5 5 5-5"/></svg>',
+  move: '<svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7h12M12.5 4l3 3-3 3M16.5 13h-12M7.5 10l-3 3 3 3"/></svg>',
+  edit: '<svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.6 3.4l3 3L7 16H4v-3z"/><path d="M11.6 5.4l3 3"/></svg>',
+  trash:'<svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6h13M8 6V4h4v2M5.5 6l1 10.5h7l1-10.5"/></svg>'
+};
+
+/* ---------- radknappar i gruppvyn (först i raden, intill namnet) ---------- */
+function rowActionsHtml(p, gid, o){
+  const groups = (o.otherGroups||[]).map(og=>`<option value="${og.id}">${esc(og.name)}</option>`).join('');
+  return `<div class="rowActions lead">
+      <button class="iconBtn" ${o.canUp?'':'disabled'} onclick="movePerson('${p.id}',-1)" title="${esc(o.upTitle)}" aria-label="${esc(o.upTitle)}">${ICON.up}</button>
+      <button class="iconBtn" ${o.canDown?'':'disabled'} onclick="movePerson('${p.id}',1)" title="${esc(o.downTitle)}" aria-label="${esc(o.downTitle)}">${ICON.down}</button>
+      <label class="iconSelect" title="Flytta till annan grupp"><span>${ICON.move}</span><select aria-label="Flytta till annan grupp" onchange="if(this.value){movePersonToGroup('${p.id}', this.value); this.value='';}"><option value="">Flytta till…</option>${groups}</select></label>
+      <button class="iconBtn" onclick="copyPersonInfoIcon('${p.id}', this)" title="Kopiera personens uppgifter" aria-label="Kopiera">${copyIconSVG()}</button>
+      <button class="iconBtn" onclick="openPersonForm('${gid}','${p.id}')" title="Redigera" aria-label="Redigera">${ICON.edit}</button>
+      ${o.del ? `<button class="iconBtn danger" onclick="deletePerson('${p.id}')" title="Ta bort" aria-label="Ta bort">${ICON.trash}</button>` : ''}
+    </div>`;
+}
+function copyPersonInfoIcon(pid, btn){
+  const p = DATA.persons.find(x=>x.id===pid);
+  if(!p) return;
+  const text = personCopyText(p);
+  copyToClipboard(text).then(()=>{
+    if(!btn) return;
+    const orig = btn.innerHTML;
+    btn.innerHTML = copyCheckSVG(); btn.classList.add('copied');
+    setTimeout(()=>{ btn.innerHTML = orig; btn.classList.remove('copied'); }, 1500);
+  }).catch(()=>alert('Kunde inte kopiera automatiskt. Uppgifterna:\n\n'+text));
+}
+
+/* ---------- hopfällda grupper/avsnitt (per enhet och register) ---------- */
+function collapsedKey(){ return 'collapsed:'+(currentFileName||''); }
+function collapsedSet(){ return new Set(lsGet(collapsedKey(), [])); }
+function isCollapsed(id){ return collapsedSet().has(id); }
+function setCollapsed(id, on){
+  const s = collapsedSet();
+  if(on) s.add(id); else s.delete(id);
+  lsSet(collapsedKey(), [...s]);
+}
+function toggleCollapsed(id){ setCollapsed(id, !isCollapsed(id)); renderAll(); }
+function collapseAllGroups(on){
+  const s = collapsedSet();
+  DATA.groups.forEach(g=>{ if(on) s.add(g.id); else s.delete(g.id); });
+  lsSet(collapsedKey(), [...s]);
+  renderAll();
+}
+function collapseBtnHtml(id){
+  return `<button type="button" class="collapseBtn" onclick="event.stopPropagation();toggleCollapsed('${id}')" title="Fäll ihop / fäll ut" aria-label="Fäll ihop eller ut">▼</button>`;
+}
+
+/* =========================================================================
+   NOTISER — samlade från grupper, kalender och anslagstavla
+   ========================================================================= */
+let NOTICES_CACHE = [];
+let NOTICE_PIDS = new Map();
+let noticeFilter = null;
+function computeAllNotices(){
+  const base = computeNotices().map(n=>Object.assign({section: n.gid ? 'g:'+n.gid : 'ovrigt', level:'orange'}, n));
+  const extra = [];
+  /* gallring av Avveckling som väntar */
+  try{
+    const og = offboardingGroup();
+    if(og && offboardingPersons().length && Date.now() >= nextGallringDate()){
+      extra.push({kind:'gallring', section:'g:'+og.id, gid:og.id, level:'orange', groupName:og.name, personName:'',
+        text:`Dags för gallring (var tredje månad) — ${offboardingPersons().length} person${offboardingPersons().length===1?'':'er'} i listan.`,
+        sortKey:-250000, ackCall:'openGallringModal(true)', ackLabel:'Gallra…'});
+    }
+  }catch(e){}
+  const all = base.concat(extra, calendarNotices(), boardNotices());
+  const rank = n=>(n.level==='red'?0:1);
+  all.sort((a,b)=> rank(a)-rank(b) || (a.sortKey||0)-(b.sortKey||0));
+  return all;
+}
+function refreshNoticeCache(){
+  if(DATA) ensureKalAnslag(DATA);
+  NOTICES_CACHE = DATA ? computeAllNotices() : [];
+  NOTICE_PIDS = new Map();
+  NOTICES_CACHE.forEach(n=>{
+    if(!n.pid) return;
+    if(n.level==='red' || !NOTICE_PIDS.has(n.pid)) NOTICE_PIDS.set(n.pid, n.level);
+  });
+}
+function noticeDotHtml(p){
+  if(!p || !NOTICE_PIDS.has(p.id)) return '';
+  const red = NOTICE_PIDS.get(p.id)==='red';
+  return `<span class="noticeDot ${red?'red':''}" title="Det finns notiser om personen"></span>`;
+}
+function sectionNotices(sec){ return NOTICES_CACHE.filter(n=>n.section===sec); }
+function sectionBadge(sec){
+  const list = sectionNotices(sec);
+  if(!list.length) return '';
+  const red = list.some(n=>n.level==='red');
+  return `<button type="button" class="secBadge ${red?'red':''}" title="${list.length} notis${list.length===1?'':'er'} — visa" onclick="event.stopPropagation();badgeClick('${sec}')">${list.length}</button>`;
+}
+function sectionLabel(sec){
+  if(sec==='kalender') return 'Kalender';
+  if(sec==='anslag') return 'Anslagstavlan';
+  if(sec && sec.startsWith('g:')) return groupName(sec.slice(2)) || 'Grupp';
+  return 'Övrigt';
+}
+function filterNotices(all){ return noticeFilter ? all.filter(n=>n.section===noticeFilter) : all; }
+function setNoticeFilter(sec){ noticeFilter = sec || null; renderAll(); }
+function badgeClick(sec){
+  noticeFilter = sec;
+  if(sec==='kalender'){
+    const first = sectionNotices('kalender')[0];
+    setCollapsed('sec:kalender', false);
+    if(first && first.date){ calState.date = first.date; }
+    renderAll();
+    const el = document.getElementById('calSection'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+    return;
+  }
+  if(sec==='anslag'){
+    const first = sectionNotices('anslag').find(n=>n.noteId);
+    if(first){ showNote(first.noteId); return; }
+    setCollapsed('sec:anslag', false);
+    renderAll();
+    const box = document.getElementById('noticeBox'); if(box) box.scrollIntoView({behavior:'smooth', block:'start'});
+    return;
+  }
+  renderAll();
+  const box = document.getElementById('noticeBox'); if(box) box.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function renderNoticeHead(all, shown){
+  const st = notifSettings();
+  const on = st.on && ('Notification' in window) && Notification.permission==='granted';
+  return `<div class="noticeHead"><div class="noticeHeadRow">
+      <span>Notiser ${all.length ? `<span class="count">(${noticeFilter ? shown.length+' av '+all.length : all.length})</span>` : ''}</span>
+      <button type="button" class="notifToggle ${on?'on':''}" onclick="openNotifSettings()" title="Telefonnotiser">🔔 ${on?'På':'Av'}</button>
+    </div></div>
+    ${noticeFilter ? `<div class="noticeFilterBar"><span>Visar: <strong>${esc(sectionLabel(noticeFilter))}</strong></span><button class="btn tiny" onclick="setNoticeFilter(null)">Visa alla</button></div>` : ''}`;
+}
+
+/* ---------- telefonnotis + siffra på appikonen ---------- */
+function notifSettings(){ return Object.assign({on:false, content:false}, lsGet('notif', {})); }
+function updateAppBadge(n){
+  try{
+    if(n>0 && navigator.setAppBadge) navigator.setAppBadge(n).catch(()=>{});
+    else if(navigator.clearAppBadge) navigator.clearAppBadge().catch(()=>{});
+  }catch(e){}
+}
+function fireDueNotifications(all){
+  const due = all.filter(n=>n.notifyKey);
+  const seenArr = lsGet('notified', []);
+  const seen = new Set(seenArr);
+  const fresh = due.filter(n=>!seen.has(n.notifyKey));
+  if(!fresh.length) return;
+  fresh.forEach(n=>seenArr.push(n.notifyKey));
+  lsSet('notified', seenArr.slice(-800));
+  const st = notifSettings();
+  if(!st.on || !('Notification' in window) || Notification.permission!=='granted') return;
+  const body = st.content
+    ? (fresh.length===1 ? `${fresh[0].notifyTitle} – ${fresh[0].text}` : fresh.map(n=>'• '+n.notifyTitle).join('\n'))
+    : (fresh.length===1 ? 'Du har en ny påminnelse.' : `Du har ${fresh.length} nya påminnelser.`);
+  showPhoneNotification(APP_TITLE, body);
+}
+function showPhoneNotification(title, body){
+  const opts = {body, tag: LSP+'-paminnelse', renotify:true, icon:'icon-192.png', badge:'icon-192.png'};
+  const fallback = ()=>{ try{ new Notification(title, opts); }catch(e){} };
+  if('serviceWorker' in navigator && navigator.serviceWorker.controller){
+    navigator.serviceWorker.ready.then(reg=>reg.showNotification(title, opts)).catch(fallback);
+  } else fallback();
+}
+function openNotifSettings(){
+  const st = notifSettings();
+  const supported = ('Notification' in window);
+  const perm = supported ? Notification.permission : 'unsupported';
+  const isOn = st.on && perm==='granted';
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal" style="max-width:520px;">
+    <h3>Telefonnotiser</h3>
+    <p style="font-size:13px;color:var(--ink-soft);">Påminnelser från kalendern och anslagstavlan visas alltid i notisrutan. Slår du på telefonnotiser visas de också i telefonens notislista. Antalet notiser syns som en siffra på appens ikon där enheten stöder det.</p>
+    <div class="banner info" style="font-size:12px;">Appen har ingen server. Notisen kommer därför <strong>när appen är öppen eller öppnas</strong> — inte medan den är helt stängd. Öppna appen regelbundet så missar du inget.</div>
+    ${!supported ? `<div class="banner" style="font-size:12px;">Den här webbläsaren stöder inte notiser. På iPhone måste appen vara installerad på hemskärmen (Dela → Lägg till på hemskärmen) och öppnas därifrån.</div>` : ''}
+    ${perm==='denied' ? `<div class="banner" style="font-size:12px;">Notiser är blockerade för appen. Tillåt dem i telefonens eller webbläsarens inställningar och försök igen.</div>` : ''}
+    <label class="checkwrap" style="font-size:13px;margin:10px 0;"><input type="checkbox" id="notifContent" ${st.content?'checked':''}> Visa vad påminnelsen gäller i notisen (annars bara "Du har en ny påminnelse")</label>
+    <p style="font-size:11px;color:var(--ink-faint);">Telefonens notiser kan synas på låsskärmen. Låt rutan ovan vara avkryssad om innehållet inte ska synas där.</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Stäng</button>
+      ${isOn ? `<button class="btn" onclick="disableNotifs()">Stäng av</button><button class="btn primary" onclick="saveNotifContent()">Spara</button>`
+             : `<button class="btn primary" ${supported && perm!=='denied' ? '' : 'disabled'} onclick="enableNotifs()">Slå på telefonnotiser</button>`}
+    </div>
+  </div>`;
+  overlay.onclick = (e)=>{ if(e.target===overlay) closeModal(); };
+  document.body.appendChild(overlay);
+}
+async function enableNotifs(){
+  const content = !!(document.getElementById('notifContent')||{}).checked;
+  let perm = 'denied';
+  try{ perm = await Notification.requestPermission(); }catch(e){}
+  if(perm!=='granted'){ alert('Notiser tilläts inte. Du kan ändra det i telefonens eller webbläsarens inställningar.'); return; }
+  lsSet('notif', {on:true, content});
+  closeModal();
+  showPhoneNotification(APP_TITLE, 'Telefonnotiser är påslagna.');
+  renderAll();
+}
+function saveNotifContent(){
+  const st = notifSettings();
+  st.content = !!document.getElementById('notifContent').checked;
+  lsSet('notif', st); closeModal(); renderAll();
+}
+function disableNotifs(){ lsSet('notif', {on:false, content:notifSettings().content}); closeModal(); renderAll(); }
+
+/* körs efter varje renderAll */
+function afterRender(){
+  if(!DATA) return;
+  if(view.name==='home') layoutBoard();
+  updateAppBadge(NOTICES_CACHE.length);
+  fireDueNotifications(NOTICES_CACHE);
+}
+/* var minut medan appen är upplåst: nya påminnelser som blivit aktuella */
+function safeToRerender(){
+  if(document.querySelector('.overlay') || boardDrag) return false;
+  const a = document.activeElement;
+  return !(a && (a.tagName==='INPUT' || a.tagName==='TEXTAREA' || a.tagName==='SELECT' || a.isContentEditable));
+}
+setInterval(()=>{
+  if(!DATA || typeof vaultKey==='undefined' || !vaultKey) return;
+  const sig = l=>l.map(n=>n.notifyKey||n.ackCall).join('|');
+  const before = sig(NOTICES_CACHE);
+  refreshNoticeCache();
+  if(sig(NOTICES_CACHE)===before) return;
+  if(view.name==='home' && safeToRerender()) renderAll();
+  else { updateAppBadge(NOTICES_CACHE.length); fireDueNotifications(NOTICES_CACHE); }
+}, 60000);
+
+/* =========================================================================
+   DATUM OCH VECKOR (ISO 8601 — veckan skrivs med tre siffror, t.ex. 641)
+   ========================================================================= */
+const MONTHS_SV = ['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december'];
+const WD_SV = ['Mån','Tis','Ons','Tor','Fre','Lör','Sön'];
+function pad2(n){ return String(n).padStart(2,'0'); }
+function isoDate(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function parseDate(s){ const a = String(s||'').split('-').map(Number); return new Date(a[0], (a[1]||1)-1, a[2]||1); }
+function addDays(d, n){ const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate()+n); return x; }
+function todayIso(){ return isoDate(new Date()); }
+function startOfWeek(d){ const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; }
+function isoWeek(d){
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y = t.getUTCFullYear();
+  const week = Math.ceil(((t - Date.UTC(y,0,1)) / 86400000 + 1) / 7);
+  return {year:y, week};
+}
+/* militärt veckoformat: sista siffran i ISO-veckoåret + veckonummer, 641 */
+function weekCode(d){ const w = isoWeek(d); return String(((w.year%10)+10)%10) + pad2(w.week); }
+function fmtDateSv(s){ const d = parseDate(s); return d.getDate()+' '+MONTHS_SV[d.getMonth()].slice(0,3)+' '+d.getFullYear(); }
+function fmtDateShort(s){ const d = parseDate(s); return d.getDate()+' '+MONTHS_SV[d.getMonth()].slice(0,3); }
+function timeToMin(t){ if(!t) return null; const a = t.split(':').map(Number); return a[0]*60+(a[1]||0); }
+function excerpt(s, n){ s = String(s||'').replace(/\s+/g,' ').trim(); n = n||60; return s.length>n ? s.slice(0,n-1)+'…' : s; }
+
+/* =========================================================================
+   KALENDER
+   ========================================================================= */
+const CAL_CATS = [
+  {key:'ovning',     label:'Övning',     color:'#4E6B2F'},
+  {key:'utbildning', label:'Utbildning', color:'#1F5FBF'},
+  {key:'ledighet',   label:'Ledighet',   color:'#7A5C99'},
+  {key:'ovrigt',     label:'Övrigt',     color:'#5F6468'},
+];
+function catOf(k){ return CAL_CATS.find(c=>c.key===k) || CAL_CATS[CAL_CATS.length-1]; }
+function ensureKalAnslag(d){
+  if(!d.kalender || typeof d.kalender!=='object') d.kalender = {};
+  if(!Array.isArray(d.kalender.events)) d.kalender.events = [];
+  if(!d.kalender.ack || typeof d.kalender.ack!=='object') d.kalender.ack = {};
+  if(!Array.isArray(d.kalender.deleted)) d.kalender.deleted = [];
+  d.kalender.events.forEach(ev=>{ if(!Array.isArray(ev.reminders)) ev.reminders = []; if(!Array.isArray(ev.removedRemIds)) ev.removedRemIds = []; });
+  if(!d.anslag || typeof d.anslag!=='object') d.anslag = {};
+  if(!Array.isArray(d.anslag.notes)) d.anslag.notes = [];
+  if(!Array.isArray(d.anslag.deleted)) d.anslag.deleted = [];
+  if(!d.anslag.gallringSnooze) d.anslag.gallringSnooze = 0;
+}
+function calEvents(){ return (DATA && DATA.kalender) ? DATA.kalender.events : []; }
+function evEnd(ev){ return ev.end && ev.end>=ev.start ? ev.end : ev.start; }
+function isTimed(ev){ return !ev.allDay && !!ev.startTime && evEnd(ev)===ev.start; }
+function evSort(a, b){
+  const ta = isTimed(a) ? timeToMin(a.startTime) : -1, tb = isTimed(b) ? timeToMin(b.startTime) : -1;
+  return (a.start<b.start?-1:a.start>b.start?1:0) || ta-tb || String(a.title).localeCompare(String(b.title),'sv');
+}
+/* datum -> händelser, för ett intervall */
+function buildEventIndex(fromDs, toDs){
+  const idx = new Map();
+  calEvents().forEach(ev=>{
+    const s = ev.start>fromDs ? ev.start : fromDs;
+    const e = evEnd(ev)<toDs ? evEnd(ev) : toDs;
+    if(s>e) return;
+    let d = parseDate(s), guard = 0;
+    while(isoDate(d)<=e && guard<400){
+      const k = isoDate(d);
+      if(!idx.has(k)) idx.set(k, []);
+      idx.get(k).push(ev);
+      d = addDays(d,1); guard++;
+    }
+  });
+  idx.forEach(list=>list.sort(evSort));
+  return idx;
+}
+
+/* ---------- påminnelser ---------- */
+function reminderDueDate(ev, r){
+  const ds = r.type==='abs' ? r.date : (ev.start ? isoDate(addDays(parseDate(ev.start), -(parseInt(r.days,10)||0))) : '');
+  if(!ds || !/^\d{4}-\d{2}-\d{2}$/.test(ds)) return null;
+  const d = parseDate(ds);
+  const m = timeToMin(r.time||'');
+  if(m!=null) d.setHours(Math.floor(m/60), m%60, 0, 0);
+  return d;
+}
+function reminderTargetIso(ev, r){ return r.type==='abs' ? r.date : ev.start; }
+function calAckKey(ev, r, due){ return ev.id+'|'+r.id+'|'+isoDate(due)+(r.time||''); }
+function reminderLabel(ev, r){
+  if(r.type==='abs'){
+    return (r.text ? r.text+' — ' : 'Påminnelse — ') + fmtDateSv(r.date) + (r.time ? ' kl. '+r.time : '');
+  }
+  const days = parseInt(r.days,10)||0;
+  const when = days===0 ? 'startar i dag' : `startar om ${days} dag${days===1?'':'ar'}`;
+  return (r.text ? r.text+' — ' : '') + when + ` (${fmtDateSv(ev.start)})`;
+}
+function calendarNotices(){
+  if(!DATA || !DATA.kalender) return [];
+  const now = new Date(), today = todayIso(), out = [];
+  calEvents().forEach(ev=>{
+    if(ev.cancelled) return;
+    (ev.reminders||[]).forEach(r=>{
+      const due = reminderDueDate(ev, r);
+      if(!due || now<due) return;
+      const key = calAckKey(ev, r, due);
+      if(DATA.kalender.ack[key]) return;
+      const target = reminderTargetIso(ev, r);
+      const daysToTarget = Math.round((parseDate(target)-parseDate(today))/86400000);
+      out.push({
+        kind:'calendar', section:'kalender', level: daysToTarget<0 ? 'red' : 'orange',
+        groupName:`Kalender · ${fmtDateSv(ev.start)} · v. ${weekCode(parseDate(ev.start))}`,
+        personName: ev.title, text: reminderLabel(ev, r),
+        sortKey: daysToTarget, date: ev.start, eventId: ev.id,
+        ackCall:`ackCalReminder('${key}')`, showCall:`calGoto('${ev.start}','${ev.id}')`,
+        notifyKey:'k|'+key, notifyTitle: ev.title
+      });
+    });
+  });
+  return out;
+}
+function ackCalReminder(key){
+  DATA.kalender.ack[key] = Date.now();
+  saveToDisk(); renderAll();
+}
+/* dagar med aktiva (ej noterade) påminnelser -> 'red' | 'orange' */
+function activeReminderDays(){
+  const m = new Map();
+  NOTICES_CACHE.filter(n=>n.kind==='calendar').forEach(n=>{
+    if(n.level==='red' || !m.has(n.date)) m.set(n.date, n.level);
+  });
+  return m;
+}
+function eventHasActiveReminder(ev){ return NOTICES_CACHE.some(n=>n.kind==='calendar' && n.eventId===ev.id); }
+
+/* ---------- vy-läge ---------- */
+let calState = {mode: lsGet('calmode','month'), date: todayIso()};
+if(!['week','month','year'].includes(calState.mode)) calState.mode = 'month';
+function setCalMode(m){ calState.mode = m; lsSet('calmode', m); rerenderCalendar(); }
+function calNav(dir){
+  const d = parseDate(calState.date);
+  if(calState.mode==='week') d.setDate(d.getDate()+7*dir);
+  else if(calState.mode==='month'){ d.setDate(1); d.setMonth(d.getMonth()+dir); }
+  else { d.setDate(1); d.setFullYear(d.getFullYear()+dir); }
+  calState.date = isoDate(d); rerenderCalendar();
+}
+function calToday(){ calState.date = todayIso(); rerenderCalendar(); }
+function calGotoWeek(ds){ calState.date = ds; calState.mode = 'week'; lsSet('calmode','week'); rerenderCalendar(); }
+function calGotoMonth(y, m){ calState.date = isoDate(new Date(y, m, 1)); calState.mode = 'month'; lsSet('calmode','month'); rerenderCalendar(); }
+function calGoto(ds, evId){
+  calState.date = ds;
+  if(calState.mode==='year'){ calState.mode = 'month'; }
+  setCollapsed('sec:kalender', false);
+  if(view.name!=='home'){ view = {name:'home'}; }
+  renderAll();
+  const el = document.getElementById('calSection');
+  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  if(evId) setTimeout(()=>{ document.querySelectorAll(`[data-ev="${evId}"]`).forEach(x=>{ x.style.outline='3px solid #102442'; setTimeout(()=>{ x.style.outline=''; }, 2500); }); }, 350);
+}
+function rerenderCalendar(){
+  const el = document.getElementById('calSection');
+  if(el){ el.outerHTML = renderCalendarSection(); } else renderAll();
+}
+function calLabel(){
+  const d = parseDate(calState.date);
+  if(calState.mode==='week'){
+    const ws = startOfWeek(d), we = addDays(ws,6);
+    const same = ws.getMonth()===we.getMonth();
+    return `Vecka <span class="wk">${weekCode(ws)}</span> <span style="font-family:var(--font-body);font-size:13px;color:var(--ink-soft);margin-left:6px;">${ws.getDate()}${same?'':' '+MONTHS_SV[ws.getMonth()].slice(0,3)}–${we.getDate()} ${MONTHS_SV[we.getMonth()].slice(0,3)} ${we.getFullYear()}</span>`;
+  }
+  if(calState.mode==='month'){
+    const first = new Date(d.getFullYear(), d.getMonth(), 1), last = new Date(d.getFullYear(), d.getMonth()+1, 0);
+    return `${MONTHS_SV[d.getMonth()].replace(/^./,c=>c.toUpperCase())} ${d.getFullYear()} <span class="wk">v. ${weekCode(first)}–${weekCode(last)}</span>`;
+  }
+  return String(d.getFullYear());
+}
+function evChipHtml(ev){
+  const c = catOf(ev.category);
+  const tip = `${ev.title}${ev.place?' · '+ev.place:''}${isTimed(ev)?' · '+ev.startTime+(ev.endTime?'–'+ev.endTime:''):''}${ev.cancelled?' · INSTÄLLD':''}`;
+  return `<button type="button" class="evChip ${ev.cancelled?'cancelled':''}" data-ev="${ev.id}" style="background:${c.color}" title="${esc(tip)}" onclick="event.stopPropagation();openEventModal('${ev.id}')">${isTimed(ev)?`<span class="t">${ev.startTime}</span>`:''}${eventHasActiveReminder(ev)?'🔔 ':''}${esc(ev.title)}</button>`;
+}
+function renderCalendarSection(){
+  const collapsed = isCollapsed('sec:kalender');
+  const modes = {week:'Vecka', month:'Månad', year:'År'};
+  let body = '';
+  if(!collapsed){
+    body = calState.mode==='week' ? renderCalWeek() : calState.mode==='year' ? renderCalYear() : renderCalMonth();
+  }
+  return `<div class="homeSection cal ${collapsed?'collapsed':''}" id="calSection">
+    <div class="secHead">
+      <h3>${collapseBtnHtml('sec:kalender')} Kalender ${sectionBadge('kalender')}</h3>
+      <div class="secTools cardOnlyOpen">
+        <div class="segmented">${Object.keys(modes).map(m=>`<button type="button" class="${calState.mode===m?'on':''}" onclick="setCalMode('${m}')">${modes[m]}</button>`).join('')}</div>
+        <button class="btn small primary" onclick="openEventModal(null)">+ Ny händelse</button>
+        <button class="btn small" onclick="openCalExportModal()">Exportera händelser</button>
+        <button class="btn small" onclick="openCalImportModal()">Importera händelser</button>
+      </div>
+    </div>
+    <div class="secBody">
+      <div class="calNav">
+        <button class="btn small" onclick="calNav(-1)" aria-label="Föregående">‹</button>
+        <button class="btn small" onclick="calToday()">Idag</button>
+        <button class="btn small" onclick="calNav(1)" aria-label="Nästa">›</button>
+        <span class="calLabel">${calLabel()}</span>
+        <span class="calLegend">${CAL_CATS.map(c=>`<span><i style="background:${c.color}"></i>${c.label}</span>`).join('')}</span>
+      </div>
+      ${body}
+    </div>
+  </div>`;
+}
+function renderCalMonth(){
+  const base = parseDate(calState.date);
+  const first = new Date(base.getFullYear(), base.getMonth(), 1);
+  const last = new Date(base.getFullYear(), base.getMonth()+1, 0);
+  const start = startOfWeek(first), end = addDays(startOfWeek(last), 6);
+  const idx = buildEventIndex(isoDate(start), isoDate(end));
+  const today = todayIso(), rem = activeReminderDays();
+  const narrow = window.innerWidth<=760, max = narrow ? 2 : 3;
+  let html = `<div class="calMonth"><div class="dh">V</div>${WD_SV.map(w=>`<div class="dh">${w}</div>`).join('')}`;
+  for(let w = start; w<=end; w = addDays(w,7)){
+    html += `<div class="wkCell" onclick="calGotoWeek('${isoDate(w)}')" title="Visa vecka ${weekCode(w)}">${weekCode(w)}</div>`;
+    for(let i=0;i<7;i++){
+      const day = addDays(w,i), ds = isoDate(day);
+      const evs = idx.get(ds) || [];
+      const cls = [day.getMonth()!==base.getMonth()?'out':'', ds===today?'today':'', i>=5?'weekend':''].join(' ');
+      const dot = rem.has(ds) ? `<span class="remDot ${rem.get(ds)==='red'?'red':''}" title="Aktiv påminnelse"></span>` : '';
+      const chips = evs.slice(0,max).map(evChipHtml).join('') + (evs.length>max ? `<div class="moreLink" onclick="event.stopPropagation();calGotoWeek('${ds}')">+${evs.length-max} till</div>` : '');
+      html += `<div class="calDay ${cls}" onclick="openEventModal(null,'${ds}')" title="Ny händelse ${fmtDateSv(ds)}"><span class="dnum">${day.getDate()}</span>${dot}${chips}</div>`;
+    }
+  }
+  return html + `</div>`;
+}
+const CAL_H0 = 6, CAL_H1 = 22, CAL_RH = 36;
+function renderCalWeek(){
+  const ws = startOfWeek(parseDate(calState.date));
+  const days = [0,1,2,3,4,5,6].map(i=>addDays(ws,i));
+  const idx = buildEventIndex(isoDate(days[0]), isoDate(days[6]));
+  const today = todayIso(), rem = activeReminderDays();
+  const total = (CAL_H1-CAL_H0)*CAL_RH;
+  let html = `<div class="calWeekWrap"><div class="calWeek">`;
+  html += `<div class="wkBig"><small>Vecka</small><b>${weekCode(ws)}</b></div>`;
+  days.forEach((d,i)=>{
+    const ds = isoDate(d);
+    const dot = rem.has(ds) ? ` <span class="noticeDot ${rem.get(ds)==='red'?'red':''}"></span>` : '';
+    html += `<div class="wh ${ds===today?'today':''} ${i>=5?'weekend':''}" onclick="openEventModal(null,'${ds}')" title="Ny heldagshändelse"><div class="wd">${WD_SV[i]}${dot}</div><div class="dd">${d.getDate()} <span style="font-size:11px;font-weight:400;color:var(--ink-faint);">${MONTHS_SV[d.getMonth()].slice(0,3)}</span></div></div>`;
+  });
+  html += `<div class="alldayLbl">Heldag</div>`;
+  days.forEach(d=>{
+    const ds = isoDate(d);
+    const evs = (idx.get(ds)||[]).filter(ev=>!isTimed(ev));
+    html += `<div class="allday" onclick="openEventModal(null,'${ds}')">${evs.map(evChipHtml).join('')}</div>`;
+  });
+  html += `<div class="hours">${Array.from({length:CAL_H1-CAL_H0},(_,i)=>`<div>${pad2(CAL_H0+i)}:00</div>`).join('')}</div>`;
+  const now = new Date();
+  days.forEach(d=>{
+    const ds = isoDate(d);
+    const evs = (idx.get(ds)||[]).filter(isTimed);
+    /* enkel kolumnfördelning för överlappande händelser */
+    const items = evs.map(ev=>{
+      const s = timeToMin(ev.startTime);
+      let e = timeToMin(ev.endTime); if(e==null || e<=s) e = s+60;
+      return {ev, s, e};
+    }).sort((a,b)=>a.s-b.s);
+    const clusters = []; let cur = null;
+    items.forEach(it=>{
+      if(cur && it.s < cur.end){ cur.items.push(it); cur.end = Math.max(cur.end, it.e); }
+      else { cur = {items:[it], end:it.e}; clusters.push(cur); }
+    });
+    clusters.forEach(cl=>{
+      const lanes = [];
+      cl.items.forEach(it=>{
+        let l = lanes.findIndex(endMin=>endMin<=it.s);
+        if(l<0){ l = lanes.length; lanes.push(it.e); } else lanes[l] = it.e;
+        it.lane = l;
+      });
+      cl.items.forEach(it=>{ it.lanes = lanes.length; });
+    });
+    const evHtml = items.map(it=>{
+      const c = catOf(it.ev.category);
+      let top = (it.s - CAL_H0*60)/60*CAL_RH, h = (it.e - it.s)/60*CAL_RH;
+      top = Math.max(0, Math.min(total-18, top)); h = Math.max(18, Math.min(total-top, h));
+      const w = 100/it.lanes;
+      return `<div class="tEv ${it.ev.cancelled?'cancelled':''}" data-ev="${it.ev.id}" style="top:${top}px;height:${h}px;left:calc(${it.lane*w}% + 2px);width:calc(${w}% - 4px);background:${c.color};" title="${esc(it.ev.title)}" onclick="event.stopPropagation();openEventModal('${it.ev.id}')"><b>${it.ev.startTime}</b> ${eventHasActiveReminder(it.ev)?'🔔 ':''}${esc(it.ev.title)}${it.ev.place?`<br><span style="opacity:.85">${esc(it.ev.place)}</span>`:''}</div>`;
+    }).join('');
+    let nowLine = '';
+    if(ds===today){
+      const m = now.getHours()*60+now.getMinutes();
+      if(m>=CAL_H0*60 && m<=CAL_H1*60) nowLine = `<div class="nowLine" style="top:${(m-CAL_H0*60)/60*CAL_RH}px"></div>`;
+    }
+    html += `<div class="dayCol ${ds===today?'today':''}" style="height:${total}px" onclick="calWeekClick(event,'${ds}')">${evHtml}${nowLine}</div>`;
+  });
+  return html + `</div></div>`;
+}
+function calWeekClick(e, ds){
+  if(e.target!==e.currentTarget) return;
+  const h = CAL_H0 + Math.floor(e.offsetY / CAL_RH);
+  openEventModal(null, ds, pad2(Math.max(0, Math.min(23, h)))+':00');
+}
+function renderCalYear(){
+  const y = parseDate(calState.date).getFullYear();
+  const idx = buildEventIndex(y+'-01-01', y+'-12-31');
+  const today = todayIso(), rem = activeReminderDays();
+  let html = `<div class="calYear">`;
+  for(let m=0;m<12;m++){
+    const first = new Date(y, m, 1), last = new Date(y, m+1, 0);
+    let rows = '';
+    for(let w = startOfWeek(first); w<=last; w = addDays(w,7)){
+      rows += `<tr><td class="wk" onclick="calGotoWeek('${isoDate(w)}')" title="Vecka ${weekCode(w)}">${weekCode(w)}</td>`;
+      for(let i=0;i<7;i++){
+        const d = addDays(w,i), ds = isoDate(d);
+        if(d.getMonth()!==m){ rows += `<td class="out"></td>`; continue; }
+        const evs = idx.get(ds)||[];
+        const has = evs.length>0;
+        const style = has ? ` style="background:${catOf(evs[0].category).color}"` : '';
+        const dot = rem.has(ds) ? `<span class="mdot ${rem.get(ds)==='red'?'red':''}"></span>` : '';
+        const tip = has ? evs.map(e=>e.title).join(', ') : fmtDateSv(ds);
+        rows += `<td class="${has?'has':''} ${ds===today?'today':''} ${i>=5?'weekend':''}"${style} title="${esc(tip)}" onclick="calGotoWeek('${ds}')">${d.getDate()}${dot}</td>`;
+      }
+      rows += `</tr>`;
+    }
+    html += `<div class="miniMonth"><h4 onclick="calGotoMonth(${y},${m})">${MONTHS_SV[m].replace(/^./,c=>c.toUpperCase())}</h4>
+      <table><thead><tr><th>V</th>${WD_SV.map(w=>`<th>${w.slice(0,2)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  return html + `</div>`;
+}
+
+/* ---------- händelseformulär ---------- */
+function remItemHtml(r){
+  r = r || {id:uid(), type:'rel', days:7, date:'', time:'', text:''};
+  return `<div class="remItem" data-id="${esc(r.id)}">
+    <div class="remRow">
+      <select class="remType" onchange="onRemTypeChange(this)">
+        <option value="rel" ${r.type!=='abs'?'selected':''}>Dagar före start</option>
+        <option value="abs" ${r.type==='abs'?'selected':''}>Eget datum</option>
+      </select>
+      <span><input type="number" class="remDays" min="0" max="3650" value="${r.type==='abs'?7:esc(r.days)}" style="${r.type==='abs'?'display:none':''}" title="Antal dagar före start"><input type="date" class="remDate" value="${esc(r.date||'')}" style="${r.type==='abs'?'':'display:none'}"></span>
+      <input type="time" class="remTime" value="${esc(r.time||'')}" title="Klockslag (valfritt)">
+      <button type="button" class="iconBtn danger" onclick="this.closest('.remItem').remove()" title="Ta bort påminnelsen" aria-label="Ta bort påminnelsen">✕</button>
+      <input class="remText" maxlength="300" value="${esc(r.text||'')}" placeholder="Text, t.ex. Anmälan till övningen ska vara inne">
+    </div>
+  </div>`;
+}
+function onRemTypeChange(sel){
+  const item = sel.closest('.remItem');
+  const abs = sel.value==='abs';
+  item.querySelector('.remDays').style.display = abs ? 'none' : '';
+  item.querySelector('.remDate').style.display = abs ? '' : 'none';
+  if(abs && !item.querySelector('.remDate').value){
+    const s = document.getElementById('ev_start').value;
+    if(s) item.querySelector('.remDate').value = isoDate(addDays(parseDate(s), -14));
+  }
+}
+function addRemRow(){ document.getElementById('ev_rems').insertAdjacentHTML('beforeend', remItemHtml()); }
+function updateWkHints(){
+  ['start','end'].forEach(k=>{
+    const v = document.getElementById('ev_'+k).value;
+    const h = document.getElementById('ev_'+k+'_wk');
+    if(h) h.textContent = v ? 'v. '+weekCode(parseDate(v)) : '';
+  });
+}
+function onAllDayToggle(){
+  const on = document.getElementById('ev_allday').checked;
+  document.querySelectorAll('.evTimeField').forEach(el=>el.style.display = on ? 'none' : '');
+}
+function openEventModal(id, ds, time){
+  const ev = id ? calEvents().find(e=>e.id===id) : null;
+  if(id && !ev) return;
+  const e = ev ? clone(ev) : {
+    title:'', category:'ovning', allDay: !time, start: ds||todayIso(), end: ds||todayIso(),
+    startTime: time||'', endTime: time ? pad2(Math.min(23, parseInt(time,10)+1))+':00' : '',
+    place:'', note:'', cancelled:false, reminders:[]
+  };
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal" style="max-width:640px;">
+    <h3>${ev ? 'Händelse' : 'Ny händelse'}</h3>
+    <div class="formgrid">
+      <div class="field full"><label>Titel</label><input id="ev_title" maxlength="200" value="${esc(e.title)}" placeholder="t.ex. KFÖ hösten"></div>
+      <div class="field"><label>Kategori</label><select id="ev_cat">${CAL_CATS.map(c=>`<option value="${c.key}" ${e.category===c.key?'selected':''}>${c.label}</option>`).join('')}</select></div>
+      <div class="field checkfield"><input type="checkbox" id="ev_allday" ${e.allDay?'checked':''} onchange="onAllDayToggle()"><label style="margin:0;">Heldag</label></div>
+      <div class="field"><label>Start <span class="wkHint" id="ev_start_wk"></span></label><input type="date" id="ev_start" value="${esc(e.start)}" oninput="if(document.getElementById('ev_end').value<this.value) document.getElementById('ev_end').value=this.value; updateWkHints()"></div>
+      <div class="field evTimeField"><label>Starttid</label><input type="time" id="ev_stime" value="${esc(e.startTime||'')}"></div>
+      <div class="field"><label>Slut <span class="wkHint" id="ev_end_wk"></span></label><input type="date" id="ev_end" value="${esc(evEnd(e))}" oninput="updateWkHints()"></div>
+      <div class="field evTimeField"><label>Sluttid</label><input type="time" id="ev_etime" value="${esc(e.endTime||'')}"></div>
+      <div class="field full"><label>Plats</label><input id="ev_place" maxlength="200" value="${esc(e.place||'')}"></div>
+      <div class="field full"><label>Anteckning</label><textarea id="ev_note" rows="3" maxlength="4000" style="width:100%;border:1px solid var(--line-strong);border-radius:var(--radius);padding:7px 9px;font-family:var(--font-body);">${esc(e.note||'')}</textarea></div>
+      <div class="field full">
+        <label>Påminnelser</label>
+        <div class="remBox">
+          <div id="ev_rems">${(e.reminders||[]).map(remItemHtml).join('')}</div>
+          <button type="button" class="btn small" onclick="addRemRow()">+ Lägg till påminnelse</button>
+          <div style="font-size:11px;color:var(--ink-faint);margin-top:6px;">Exempel: "Eget datum" 1 nov med texten "Anmälan till övningen ska vara inne", eller "7 dagar före start". Påminnelsen visas i notisrutan (och som telefonnotis om det är påslaget) från och med den dagen.</div>
+        </div>
+      </div>
+      ${ev ? `<div class="field full checkfield" style="margin-top:4px;"><input type="checkbox" id="ev_cancel" ${e.cancelled?'checked':''}><label style="margin:0;">Inställd (visas överstruken — dela igen så att mottagarna ser det)</label></div>` : ''}
+    </div>
+    <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;">
+        ${ev ? `<button class="btn danger" onclick="deleteEvent('${ev.id}')">Ta bort</button><button class="btn" onclick="saveEventModal('${ev.id}', true)">Dela…</button>` : ''}
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="closeModal()">Avbryt</button>
+        <button class="btn primary" onclick="saveEventModal(${ev ? `'${ev.id}'` : 'null'})">Spara</button>
+      </div>
+    </div>
+  </div>`;
+  overlay.onclick = (x)=>{ if(x.target===overlay) closeModal(); };
+  document.body.appendChild(overlay);
+  updateWkHints(); onAllDayToggle();
+  setTimeout(()=>{ if(!ev) document.getElementById('ev_title').focus(); }, 0);
+}
+function readRemindersFromModal(){
+  const out = [];
+  document.querySelectorAll('#ev_rems .remItem').forEach(item=>{
+    const type = item.querySelector('.remType').value==='abs' ? 'abs' : 'rel';
+    const r = {id:item.dataset.id || uid(), type, days:0, date:'', time:item.querySelector('.remTime').value||'', text:item.querySelector('.remText').value.trim()};
+    if(type==='abs'){ r.date = item.querySelector('.remDate').value; if(!r.date) return; }
+    else { r.days = Math.max(0, Math.min(3650, parseInt(item.querySelector('.remDays').value,10)||0)); }
+    out.push(r);
+  });
+  return out;
+}
+function remSame(a, b){ return a.type===b.type && String(a.days||0)===String(b.days||0) && (a.date||'')===(b.date||'') && (a.time||'')===(b.time||'') && (a.text||'')===(b.text||''); }
+function saveEventModal(id, thenShare){
+  const title = document.getElementById('ev_title').value.trim();
+  if(!title){ document.getElementById('ev_title').focus(); alert('Ange en titel.'); return; }
+  const start = document.getElementById('ev_start').value;
+  if(!start){ alert('Ange startdatum.'); return; }
+  let end = document.getElementById('ev_end').value || start;
+  if(end<start) end = start;
+  const allDay = document.getElementById('ev_allday').checked;
+  let startTime = allDay ? '' : document.getElementById('ev_stime').value;
+  let endTime = allDay ? '' : document.getElementById('ev_etime').value;
+  const fields = {
+    title, category: document.getElementById('ev_cat').value, allDay: allDay || !startTime,
+    start, end, startTime, endTime,
+    place: document.getElementById('ev_place').value.trim(),
+    note: document.getElementById('ev_note').value,
+    updated: Date.now()
+  };
+  if(!fields.allDay && end===start && endTime && timeToMin(endTime)<timeToMin(startTime)) fields.endTime = startTime;
+  let rems = readRemindersFromModal();
+  let ev;
+  if(id){
+    ev = calEvents().find(e=>e.id===id);
+    if(!ev) return;
+    const cancelEl = document.getElementById('ev_cancel');
+    fields.cancelled = cancelEl ? cancelEl.checked : !!ev.cancelled;
+    /* importerade påminnelser som ändrats eller tagits bort blir egna,
+       så att en ny delning från avsändaren inte skriver över dem */
+    const removed = new Set(ev.removedRemIds||[]);
+    (ev.reminders||[]).forEach(old=>{
+      if(old.from!=='import') return;
+      const now = rems.find(r=>r.id===old.id);
+      if(!now){ removed.add(old.id); return; }
+      if(!remSame(old, now)){ removed.add(old.id); now.id = uid(); }
+      else now.from = 'import';
+    });
+    fields.removedRemIds = [...removed];
+    Object.assign(ev, fields, {reminders: rems});
+  } else {
+    ev = Object.assign({id:uid(), created:Date.now(), cancelled:false, removedRemIds:[]}, fields, {reminders: rems});
+    DATA.kalender.events.push(ev);
+  }
+  saveToDisk();
+  closeModal();
+  calState.date = start;
+  renderAll();
+  if(thenShare) openCalExportModal([ev.id]);
+}
+function deleteEvent(id){
+  const ev = calEvents().find(e=>e.id===id);
+  if(!ev) return;
+  if(!confirm(`Ta bort "${ev.title}" ur din kalender?\n\nVill du att mottagarna också ska se att den är inställd: markera den som Inställd och dela den i stället.`)) return;
+  DATA.kalender.events = calEvents().filter(e=>e.id!==id);
+  DATA.kalender.deleted = DATA.kalender.deleted.concat(id).slice(-500);
+  Object.keys(DATA.kalender.ack).forEach(k=>{ if(k.startsWith(id+'|')) delete DATA.kalender.ack[k]; });
+  saveToDisk(); closeModal(); renderAll();
+}
+
+/* ---------- delning av händelser (krypterad text, delningskod) ---------- */
+let customShare = null;
+const CAL_TAG = '#PR-KAL1', NOTE_TAG = '#PR-ANS1';
+function exportEventObj(ev){
+  return {id:ev.id, title:ev.title, category:ev.category, allDay:!!ev.allDay, start:ev.start, end:evEnd(ev),
+    startTime:ev.startTime||'', endTime:ev.endTime||'', place:ev.place||'', note:ev.note||'',
+    cancelled:!!ev.cancelled, updated:ev.updated||Date.now(),
+    reminders:(ev.reminders||[]).map(r=>({id:r.id, type:r.type, days:r.days||0, date:r.date||'', time:r.time||'', text:r.text||''}))};
+}
+function calPayloadLine(evs){ return CAL_TAG+' '+JSON.stringify({v:1, app:APP_KEY, events:evs.map(exportEventObj)}); }
+function notesPayloadLine(notes){
+  return NOTE_TAG+' '+JSON.stringify({v:1, notes:notes.map(n=>({id:n.id, text:n.text, color:n.color, x:n.x, y:n.y, rot:n.rot, z:n.z,
+    remind:n.remind||null, remindAck:!!n.remindAck, done:!!n.done, doneAt:n.doneAt||0, created:n.created||0, updated:n.updated||0}))});
+}
+function openCalExportModal(preIds){
+  const evs = calEvents().slice().sort(evSort);
+  if(!evs.length){ alert('Det finns inga händelser i kalendern att exportera.'); return; }
+  closeModal();
+  const today = todayIso();
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal" style="max-width:600px;">
+    <h3>Exportera händelser</h3>
+    <p style="font-size:13px;color:var(--ink-soft);">Välj vilka händelser som ska delas. De krypteras med en delningskod och kan klistras in i Slack. Mottagaren läser in dem med <strong>Importera händelser</strong>. Skickar du samma händelse igen efter en ändring uppdateras den hos mottagaren i stället för att dubbleras.</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <button class="btn tiny" onclick="calPickSet('upcoming')">Markera kommande</button>
+      <button class="btn tiny" onclick="calPickSet('all')">Markera alla</button>
+      <button class="btn tiny" onclick="calPickSet('none')">Avmarkera alla</button>
+      <span id="calPickCount" style="font-size:12px;color:var(--ink-soft);align-self:center;"></span>
+    </div>
+    <div class="evPickList">${evs.map(ev=>{
+      const checked = preIds ? preIds.includes(ev.id) : evEnd(ev)>=today;
+      return `<label><input type="checkbox" class="evPick" value="${ev.id}" data-end="${evEnd(ev)}" ${checked?'checked':''} onchange="calPickCount()"><span class="sw" style="background:${catOf(ev.category).color}"></span><span style="${ev.cancelled?'text-decoration:line-through;':''}">${esc(ev.title)}${ev.cancelled?' (inställd)':''}</span><span class="meta">${fmtDateShort(ev.start)} · v. ${weekCode(parseDate(ev.start))}${ev.reminders&&ev.reminders.length?' · 🔔'+ev.reminders.length:''}</span></label>`;
+    }).join('')}</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Avbryt</button>
+      <button class="btn primary" onclick="calExportGo()">🔒 Kryptera och dela</button>
+    </div>
+  </div>`;
+  overlay.onclick = (x)=>{ if(x.target===overlay) closeModal(); };
+  document.body.appendChild(overlay);
+  calPickCount();
+}
+function calPickSet(mode){
+  const today = todayIso();
+  document.querySelectorAll('.evPick').forEach(c=>{ c.checked = mode==='all' ? true : mode==='none' ? false : c.dataset.end>=today; });
+  calPickCount();
+}
+function calPickCount(){
+  const n = document.querySelectorAll('.evPick:checked').length;
+  const el = document.getElementById('calPickCount'); if(el) el.textContent = `${n} vald${n===1?'':'a'}`;
+}
+function calExportGo(){
+  const ids = [...document.querySelectorAll('.evPick:checked')].map(c=>c.value);
+  if(!ids.length){ alert('Markera minst en händelse.'); return; }
+  const evs = calEvents().filter(e=>ids.includes(e.id));
+  customShare = {plain: calPayloadLine(evs), title: `${evs.length} kalenderhändelse${evs.length===1?'':'r'}`, kind:'kalender'};
+  openShareExport('custom');
+}
+function openCalImportModal(){
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal" style="max-width:600px;">
+    <h3>Importera händelser</h3>
+    <p style="font-size:13px;color:var(--ink-soft);">Klistra in den krypterade texten (eller välj den som .txt-fil). Händelserna läggs till i din kalender, eller uppdateras om du redan har dem. Inget av ditt eget tas bort.</p>
+    <div class="field full">
+      <input type="file" accept=".txt,text/plain" style="margin-bottom:8px;" onchange="(f=>{ if(!f) return; const r=new FileReader(); r.onload=()=>{ document.getElementById('calImpText').value=r.result; }; r.readAsText(f,'UTF-8'); })(this.files[0])">
+      <textarea id="calImpText" rows="9" style="width:100%;font-family:monospace;font-size:12px;border:1px solid var(--line-strong);border-radius:var(--radius);padding:8px;box-sizing:border-box;" placeholder="Klistra in texten här…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Avbryt</button>
+      <button class="btn primary" onclick="calImportGo()">Läs in</button>
+    </div>
+  </div>`;
+  overlay.onclick = (x)=>{ if(x.target===overlay) closeModal(); };
+  document.body.appendChild(overlay);
+  setTimeout(()=>document.getElementById('calImpText').focus(), 0);
+}
+async function calImportGo(){
+  let text;
+  try{ text = await openSharedText(document.getElementById('calImpText').value); }
+  catch(e){ if(e && e.message!=='avbrutet') alert('Texten kunde inte låsas upp: '+(e.message||e)); return; }
+  if(text==null) return;
+  const ex = splitExtras(text);
+  if(!ex.cal && !ex.notes){ alert('Hittade inga kalenderhändelser i texten. Personaluppgifter läses in via "Importera personal" eller "Importera från Slack".'); return; }
+  closeModal();
+  await offerExtras(ex);
+}
+
+/* ---------- extradelar i en importerad text ---------- */
+function splitExtras(text){
+  const out = {text:'', cal:null, notes:null, bad:false};
+  out.text = String(text||'').replace(/^[ \t]*#PR-(KAL1|ANS1)[ \t]+(.+)$/gm, (m, tag, json)=>{
+    try{ const o = JSON.parse(json); if(tag==='KAL1') out.cal = o; else out.notes = o; }catch(e){ out.bad = true; }
+    return '';
+  });
+  return out;
+}
+async function routeImport(text, personsFn){
+  const ex = splitExtras(text);
+  if(!ex.cal && !ex.notes){
+    if(ex.bad) alert('En del av texten (kalender/anslagstavla) kunde inte läsas och hoppades över.');
+    personsFn(ex.text);
+    return;
+  }
+  if(ex.text.trim()) personsFn(ex.text);
+  else closeModal();
+  await offerExtras(ex);
+}
+function askYesNo(title, html, yes, no){
+  return new Promise(resolve=>{
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay'; overlay.style.zIndex = 260;
+    overlay.innerHTML = `<div class="modal" style="max-width:480px;"><h3>${esc(title)}</h3><div style="font-size:13px;color:var(--ink-soft);">${html}</div>
+      <div class="modal-actions"><button class="btn" id="ynNo">${esc(no)}</button><button class="btn primary" id="ynYes">${esc(yes)}</button></div></div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#ynNo').onclick = ()=>{ overlay.remove(); resolve(false); };
+    overlay.querySelector('#ynYes').onclick = ()=>{ overlay.remove(); resolve(true); };
+  });
+}
+async function offerExtras(ex){
+  if(ex.cal && Array.isArray(ex.cal.events) && ex.cal.events.length){
+    const pv = mergeEvents(ex.cal.events, true);
+    const n = ex.cal.events.length;
+    const parts = [];
+    if(pv.added) parts.push(`${pv.added} ny${pv.added===1?'':'a'}`);
+    if(pv.updated) parts.push(`${pv.updated} uppdaterad${pv.updated===1?'':'e'}`);
+    if(pv.same) parts.push(`${pv.same} redan aktuell${pv.same===1?'':'a'}`);
+    if(pv.older) parts.push(`${pv.older} där din version är nyare`);
+    if(pv.deleted) parts.push(`${pv.deleted} som du tagit bort`);
+    if(pv.invalid) parts.push(`${pv.invalid} oläsbar${pv.invalid===1?'':'a'}`);
+    if(!pv.added && !pv.updated){
+      alert(`Texten innehåller ${n} kalenderhändelse${n===1?'':'r'}, men det finns inget nytt att lägga till (${parts.join(', ')}).`);
+    } else {
+    const ok = await askYesNo('Kalenderhändelser',
+      `<p>Texten innehåller <strong>${n} kalenderhändelse${n===1?'':'r'}</strong>: ${esc(parts.join(', '))}.</p><p>Vill du lägga till dem i din kalender? Nya läggs till och samma händelse uppdateras — dina egna händelser tas aldrig bort eller skrivs över. Påminnelser du själv lagt till eller ändrat behålls.</p>`,
+      'Lägg till', 'Hoppa över');
+    if(ok){
+      mergeEvents(ex.cal.events, false);
+      saveToDisk(); renderAll();
+    }
+    }
+  }
+  if(ex.notes && Array.isArray(ex.notes.notes) && ex.notes.notes.length){
+    const pv = mergeNotes(ex.notes.notes, true);
+    const n = ex.notes.notes.length;
+    if(!pv.added && !pv.updated){ alert(`Texten innehåller ${n} lapp${n===1?'':'ar'} från en anslagstavla, men inget nytt att lägga till.`); return; }
+    const ok = await askYesNo('Anslagstavlan',
+      `<p>Texten innehåller <strong>${n} lapp${n===1?'':'ar'}</strong> från en anslagstavla: ${pv.added} ny${pv.added===1?'':'a'}, ${pv.updated} uppdaterad${pv.updated===1?'':'e'}${pv.same?`, ${pv.same} redan aktuell${pv.same===1?'':'a'}`:''}${pv.deleted?`, ${pv.deleted} som du gallrat`:''}.</p><p>Vill du lägga till dem på din tavla? Dina egna lappar tas aldrig bort.</p>`,
+      'Lägg till', 'Hoppa över');
+    if(ok && (pv.added || pv.updated)){
+      mergeNotes(ex.notes.notes, false);
+      saveToDisk(); renderAll();
+    }
+  }
+}
+function cleanRem(r){
+  if(!r || typeof r!=='object') return null;
+  const id = String(r.id||''); if(!SAFE_ID_RE.test(id)) return null;
+  const type = r.type==='abs' ? 'abs' : 'rel';
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(r.date||'') ? r.date : '';
+  if(type==='abs' && !date) return null;
+  return {id, type, days: Math.max(0, Math.min(3650, parseInt(r.days,10)||0)), date,
+    time: /^\d{2}:\d{2}$/.test(r.time||'') ? r.time : '', text: String(r.text||'').slice(0,300)};
+}
+function cleanEvent(e){
+  if(!e || typeof e!=='object') return null;
+  const id = String(e.id||''); if(!SAFE_ID_RE.test(id)) return null;
+  const date = s=>/^\d{4}-\d{2}-\d{2}$/.test(s||'') ? s : '';
+  const time = s=>/^\d{2}:\d{2}$/.test(s||'') ? s : '';
+  const start = date(e.start); if(!start) return null;
+  let end = date(e.end) || start; if(end<start) end = start;
+  return {id, title: String(e.title||'(utan titel)').slice(0,200),
+    category: CAL_CATS.some(c=>c.key===e.category) ? e.category : 'ovrigt',
+    allDay: !!e.allDay, start, end, startTime: time(e.startTime), endTime: time(e.endTime),
+    place: String(e.place||'').slice(0,200), note: String(e.note||'').slice(0,4000),
+    cancelled: !!e.cancelled, updated: Number(e.updated)||0,
+    reminders: (Array.isArray(e.reminders)?e.reminders:[]).map(cleanRem).filter(Boolean).slice(0,30)};
+}
+function mergeEvents(list, dry){
+  const res = {added:0, updated:0, same:0, older:0, deleted:0, invalid:0};
+  list.forEach(raw=>{
+    const inc = cleanEvent(raw);
+    if(!inc){ res.invalid++; return; }
+    if(DATA.kalender.deleted.includes(inc.id)){ res.deleted++; return; }
+    inc.reminders.forEach(r=>{ r.from = 'import'; });
+    const cur = calEvents().find(e=>e.id===inc.id);
+    if(!cur){
+      res.added++;
+      if(!dry) DATA.kalender.events.push(Object.assign(inc, {removedRemIds:[]}));
+      return;
+    }
+    if(inc.updated < (cur.updated||0)){ res.older++; return; }
+    if(inc.updated === (cur.updated||0)){ res.same++; return; }
+    res.updated++;
+    if(dry) return;
+    const removed = cur.removedRemIds || [];
+    const incRems = inc.reminders.filter(r=>!removed.includes(r.id));
+    const own = (cur.reminders||[]).filter(r=>r.from!=='import' && !incRems.some(x=>x.id===r.id));
+    Object.assign(cur, inc, {reminders: incRems.concat(own), removedRemIds: removed});
+  });
+  return res;
+}
+
+/* =========================================================================
+   ANSLAGSTAVLA
+   ========================================================================= */
+const NOTE_COLORS = [
+  {key:'gul', label:'Gul', c:'#FFF27A'}, {key:'rosa', label:'Rosa', c:'#FFB8CB'},
+  {key:'gron', label:'Grön', c:'#BDF0A6'}, {key:'bla', label:'Blå', c:'#AED9FF'},
+  {key:'orange', label:'Orange', c:'#FFCA80'}, {key:'lila', label:'Lila', c:'#D9BDFF'}
+];
+const BOARD_W = 1200, NOTE_W = 180, NOTE_H = 170, NOTE_GALLRING_DAYS = 30;
+let boardDrag = null;
+const newNoteIds = new Set();
+function boardNotes(){ return (DATA && DATA.anslag) ? DATA.anslag.notes : []; }
+function findNote(id){ return boardNotes().find(n=>n.id===id); }
+function noteColor(k){ return (NOTE_COLORS.find(c=>c.key===k) || NOTE_COLORS[0]).c; }
+function nextNoteZ(){ return boardNotes().reduce((m,n)=>Math.max(m, n.z||0), 0) + 1; }
+function noteDueDate(n){
+  if(!n.remind || !n.remind.date) return null;
+  const d = parseDate(n.remind.date);
+  const m = timeToMin(n.remind.time||'');
+  if(m!=null) d.setHours(Math.floor(m/60), m%60, 0, 0);
+  return d;
+}
+function noteRemState(n){
+  const due = noteDueDate(n);
+  if(!due) return {};
+  const label = fmtDateSv(n.remind.date) + (n.remind.time ? ' kl. '+n.remind.time : '');
+  if(n.remindAck) return {label: label+' (noterad)'};
+  if(new Date()>=due) return {due:true, cls:'due', label};
+  const days = Math.round((parseDate(n.remind.date)-parseDate(todayIso()))/86400000);
+  return {cls: days<=3 ? 'warn' : '', label};
+}
+function boardNotices(){
+  if(!DATA || !DATA.anslag) return [];
+  const out = [], now = new Date(), today = todayIso();
+  boardNotes().forEach(n=>{
+    if(n.done || n.remindAck) return;
+    const due = noteDueDate(n);
+    if(!due || now<due) return;
+    const days = Math.round((parseDate(n.remind.date)-parseDate(today))/86400000);
+    out.push({kind:'boardnote', section:'anslag', level: days<0 ? 'red' : 'orange', groupName:'Anslagstavlan · '+fmtDateSv(n.remind.date),
+      personName:'', text: excerpt(n.text,120) || '(tom lapp)', sortKey: days, noteId:n.id,
+      ackCall:`ackNoteRemind('${n.id}')`, showCall:`showNote('${n.id}')`,
+      notifyKey:'n|'+n.id+'|'+n.remind.date+(n.remind.time||''), notifyTitle: excerpt(n.text,60) || 'Lapp på anslagstavlan'});
+  });
+  const old = oldDoneNotes();
+  if(old.length && !(DATA.anslag.gallringSnooze && Date.now()<DATA.anslag.gallringSnooze)){
+    out.push({kind:'gallring', section:'anslag', level:'orange', groupName:'Anslagstavlan', personName:'',
+      text:`${old.length} klar${old.length===1?'':'a'} lapp${old.length===1?'':'ar'} har legat i högen i mer än ${NOTE_GALLRING_DAYS} dagar — gallra?`,
+      sortKey:-240000, ackCall:'openNoteGallring(false)', ackLabel:'Gallra…'});
+  }
+  return out;
+}
+function oldDoneNotes(){
+  const limit = Date.now() - NOTE_GALLRING_DAYS*86400000;
+  return boardNotes().filter(n=>n.done && (n.doneAt||0) < limit);
+}
+function ackNoteRemind(id){
+  const n = findNote(id); if(!n) return;
+  n.remindAck = true; n.updated = Date.now();
+  saveToDisk(); renderAll();
+}
+function noteHtml(n){
+  const st = noteRemState(n);
+  return `<div class="note ${st.due?'due':''}" id="note-${n.id}" data-id="${n.id}" style="left:${n.x}px;top:${n.y}px;z-index:${n.z||1};background:${noteColor(n.color)};transform:rotate(${n.rot||0}deg);">
+    <div class="grip" title="Dra för att flytta"><span class="pin"></span>
+      <div class="ntools">
+        <button type="button" title="Byt färg" aria-label="Byt färg" onclick="toggleNotePalette('${n.id}')">🎨</button>
+        <button type="button" class="${n.remind?'bellOn':''} ${st.due?'ring':''}" title="Påminn mig" aria-label="Påminn mig" onclick="openNoteRemind('${n.id}')">${n.remind?'🔔':'🔕'}</button>
+        <button type="button" title="Klar — riv ner lappen" aria-label="Klar" onclick="noteDone('${n.id}')">✔</button>
+      </div>
+    </div>
+    <div class="palette">${NOTE_COLORS.map(c=>`<button type="button" class="${c.key===n.color?'on':''}" style="background:${c.c}" title="${c.label}" aria-label="${c.label}" onclick="setNoteColor('${n.id}','${c.key}')"></button>`).join('')}</div>
+    <textarea placeholder="Skriv här…" maxlength="1000" oninput="noteInput('${n.id}', this.value)" onblur="noteBlur('${n.id}')">${esc(n.text||'')}</textarea>
+    ${st.label ? `<div class="ndate ${st.cls||''}">🔔 ${esc(st.label)}</div>` : ''}
+  </div>`;
+}
+function boardHeight(){
+  return Math.max(560, ...boardNotes().filter(n=>!n.done).map(n=>(n.y||0)+NOTE_H+60));
+}
+function renderBoardSection(){
+  const collapsed = isCollapsed('sec:anslag');
+  const active = boardNotes().filter(n=>!n.done);
+  const done = boardNotes().filter(n=>n.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
+  const H = boardHeight();
+  const narrow = window.innerWidth<=760;
+  return `<div class="homeSection board ${collapsed?'collapsed':''}" id="boardSection">
+    <div class="secHead">
+      <h3>${collapseBtnHtml('sec:anslag')} Anslagstavla ${sectionBadge('anslag')}</h3>
+      <div class="secTools cardOnlyOpen">
+        <button class="btn small primary" onclick="addNote()">+ Ny lapp</button>
+        ${narrow ? `<button class="btn small" onclick="toggleBoardFit()">${lsGet('boardfit',false)?'Normal storlek':'Visa hela tavlan'}</button>` : ''}
+      </div>
+    </div>
+    <div class="secBody">
+      ${narrow && !lsGet('boardfit',false) ? `<div style="font-size:11px;color:var(--ink-faint);padding:6px 16px;">Dra i sidled för att se hela tavlan, eller tryck på "Visa hela tavlan". Flytta en lapp genom att ta tag i dess överkant.</div>` : ''}
+      <div class="boardOuter" id="boardOuter"><div class="boardViewport" id="boardViewport">
+        <div class="boardCanvas" id="boardCanvas" style="height:${H}px;">
+          ${active.length ? '' : `<div class="boardEmpty">Tavlan är tom — sätt upp en lapp med "+ Ny lapp"</div>`}
+          ${active.map(noteHtml).join('')}
+        </div>
+      </div></div>
+      <details class="doneHeap" ${lsGet('heapopen',false)?'open':''} ontoggle="lsSet('heapopen', this.open)">
+        <summary>Klara lappar (${done.length})${done.length ? ` <button class="btn tiny" style="margin-left:10px;" onclick="event.preventDefault();openNoteGallring(true)">Gallra…</button>` : ''}</summary>
+        <div class="doneList">${done.length ? done.map(n=>`<div class="doneNote" style="background:${noteColor(n.color)}">
+            <div class="txt">${esc(n.text||'(tom lapp)')}</div>
+            <div class="meta">Klar ${n.doneAt ? fmtDateSv(isoDate(new Date(n.doneAt))) : ''}</div>
+            <button class="btn tiny" onclick="restoreNote('${n.id}')">Sätt upp igen</button>
+          </div>`).join('') : `<div style="font-size:12px;color:var(--ink-faint);">Inga klara lappar. Bocka av en lapp med ✔ så hamnar den här.</div>`}</div>
+      </details>
+    </div>
+  </div>`;
+}
+function layoutBoard(){
+  const outer = document.getElementById('boardOuter');
+  const vp = document.getElementById('boardViewport');
+  const canvas = document.getElementById('boardCanvas');
+  if(!outer || !vp || !canvas) return;
+  const narrow = window.innerWidth<=760;
+  const fit = narrow ? !!lsGet('boardfit', false) : true;
+  const avail = Math.max(200, outer.clientWidth - 20);
+  const scale = fit ? Math.min(1.25, avail/BOARD_W) : 1;
+  const H = parseFloat(canvas.style.height) || boardHeight();
+  canvas.style.transform = `scale(${scale})`;
+  vp.style.width = (BOARD_W*scale)+'px';
+  vp.style.height = (H*scale)+'px';
+  outer.classList.toggle('scroll', !fit);
+  window.__boardScale = scale;
+}
+window.addEventListener('resize', ()=>{ if(DATA && view.name==='home') layoutBoard(); });
+function toggleBoardFit(){ lsSet('boardfit', !lsGet('boardfit', false)); rerenderBoard(); }
+function rerenderBoard(){
+  const el = document.getElementById('boardSection');
+  if(el){ el.outerHTML = renderBoardSection(); layoutBoard(); } else renderAll();
+}
+function freeNoteSpot(){
+  const act = boardNotes().filter(n=>!n.done);
+  for(let row=0; row<40; row++){
+    for(let col=0; col<6; col++){
+      const x = 24 + col*196, y = 24 + row*190;
+      if(!act.some(n=>Math.abs((n.x||0)-x)<NOTE_W-30 && Math.abs((n.y||0)-y)<NOTE_H-30)) return {x, y};
+    }
+  }
+  return {x:24, y:24};
+}
+function addNote(){
+  setCollapsed('sec:anslag', false);
+  const spot = freeNoteSpot();
+  const n = {id:uid(), text:'', color:'gul', x:spot.x, y:spot.y,
+    rot: Math.round((Math.random()*6-3)*10)/10, z: nextNoteZ(),
+    remind:null, remindAck:false, done:false, doneAt:0, created:Date.now(), updated:Date.now()};
+  DATA.anslag.notes.push(n);
+  newNoteIds.add(n.id);
+  saveToDisk();
+  if(view.name!=='home'){ view = {name:'home'}; renderAll(); } else if(document.getElementById('boardSection')) rerenderBoard(); else renderAll();
+  const el = document.getElementById('note-'+n.id);
+  if(el){
+    el.scrollIntoView({behavior:'smooth', block:'center'});
+    const ta = el.querySelector('textarea'); if(ta) setTimeout(()=>ta.focus({preventScroll:true}), 250);
+  }
+}
+let noteSaveTimer = null;
+function noteInput(id, v){
+  const n = findNote(id); if(!n) return;
+  n.text = v; n.updated = Date.now();
+  clearTimeout(noteSaveTimer);
+  noteSaveTimer = setTimeout(()=>saveToDisk(), 800);
+}
+function noteBlur(id){
+  const n = findNote(id); if(!n) return;
+  clearTimeout(noteSaveTimer);
+  if(newNoteIds.has(id) && !String(n.text||'').trim() && !n.remind){
+    /* tom ny lapp som aldrig fick någon text tas bort direkt */
+    setTimeout(()=>{
+      const still = findNote(id);
+      const el = document.getElementById('note-'+id);
+      if(still && !String(still.text||'').trim() && !still.remind && !(el && el.contains(document.activeElement)) && !document.querySelector('.overlay')){
+        DATA.anslag.notes = boardNotes().filter(x=>x.id!==id);
+        newNoteIds.delete(id);
+        saveToDisk(); rerenderBoard();
+      }
+    }, 300);
+    return;
+  }
+  newNoteIds.delete(id);
+  saveToDisk();
+}
+function toggleNotePalette(id){
+  const el = document.getElementById('note-'+id);
+  if(el) el.classList.toggle('showColors');
+}
+function setNoteColor(id, key){
+  const n = findNote(id); if(!n) return;
+  n.color = key; n.updated = Date.now();
+  newNoteIds.delete(id);
+  const el = document.getElementById('note-'+id);
+  if(el){
+    el.style.background = noteColor(key);
+    el.classList.remove('showColors');
+    el.querySelectorAll('.palette button').forEach((b,i)=>b.classList.toggle('on', NOTE_COLORS[i].key===key));
+  }
+  saveToDisk();
+}
+function noteDone(id){
+  const n = findNote(id); if(!n) return;
+  if(!String(n.text||'').trim() && !n.remind){
+    DATA.anslag.notes = boardNotes().filter(x=>x.id!==id);
+  } else {
+    n.done = true; n.doneAt = Date.now(); n.updated = Date.now();
+  }
+  newNoteIds.delete(id);
+  saveToDisk(); renderAll();
+}
+function restoreNote(id){
+  const n = findNote(id); if(!n) return;
+  const spot = freeNoteSpot();
+  n.done = false; n.doneAt = 0; n.x = spot.x; n.y = spot.y; n.z = nextNoteZ(); n.updated = Date.now();
+  saveToDisk(); renderAll();
+}
+function showNote(id){
+  const n = findNote(id); if(!n) return;
+  setCollapsed('sec:anslag', false);
+  if(view.name!=='home') view = {name:'home'};
+  n.z = nextNoteZ();
+  renderAll();
+  const el = document.getElementById('note-'+id);
+  if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'), 2600); }
+}
+function openNoteRemind(id){
+  const n = findNote(id); if(!n) return;
+  newNoteIds.delete(id);
+  const r = n.remind || {date: isoDate(addDays(new Date(),1)), time:''};
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal" style="max-width:420px;">
+    <h3>Påminn mig</h3>
+    <p style="font-size:13px;color:var(--ink-soft);">${esc(excerpt(n.text,100) || '(tom lapp)')}</p>
+    <div class="formgrid">
+      <div class="field"><label>Datum <span class="wkHint" id="nr_wk"></span></label><input type="date" id="nr_date" value="${esc(r.date)}" oninput="document.getElementById('nr_wk').textContent=this.value?'v. '+weekCode(parseDate(this.value)):''"></div>
+      <div class="field"><label>Tid (valfritt)</label><input type="time" id="nr_time" value="${esc(r.time||'')}"></div>
+    </div>
+    <div class="modal-actions" style="justify-content:space-between;">
+      <div>${n.remind ? `<button class="btn danger" onclick="saveNoteRemind('${id}', true)">Ta bort påminnelse</button>` : ''}</div>
+      <div style="display:flex;gap:8px;"><button class="btn" onclick="closeModal()">Avbryt</button><button class="btn primary" onclick="saveNoteRemind('${id}')">Spara</button></div>
+    </div>
+  </div>`;
+  overlay.onclick = (x)=>{ if(x.target===overlay) closeModal(); };
+  document.body.appendChild(overlay);
+  const d = document.getElementById('nr_date'); d.dispatchEvent(new Event('input'));
+}
+function saveNoteRemind(id, clear){
+  const n = findNote(id); if(!n) return;
+  if(clear) n.remind = null;
+  else {
+    const date = document.getElementById('nr_date').value;
+    if(!date){ alert('Välj ett datum.'); return; }
+    n.remind = {date, time: document.getElementById('nr_time').value||''};
+  }
+  n.remindAck = false; n.updated = Date.now();
+  saveToDisk(); closeModal(); renderAll();
+}
+function openNoteGallring(manual){
+  const list = manual ? boardNotes().filter(n=>n.done).sort((a,b)=>(a.doneAt||0)-(b.doneAt||0)) : oldDoneNotes();
+  if(!list.length){ alert('Det finns inga klara lappar att gallra.'); return; }
+  const limit = Date.now() - NOTE_GALLRING_DAYS*86400000;
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal" style="max-width:480px;">
+    <h3>Gallring — klara lappar</h3>
+    <p style="color:var(--ink-soft);font-size:13px;">Markera de lappar som ska tas bort för gott. Lappar som legat i högen i mer än ${NOTE_GALLRING_DAYS} dagar är förvalda.</p>
+    <div style="max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius);padding:8px 10px;margin:10px 0;">
+      ${list.map(n=>`<label class="checkwrap" style="margin:5px 0;align-items:flex-start;"><input type="checkbox" class="noteGallrPick" value="${n.id}" ${(n.doneAt||0)<limit?'checked':''} onchange="updNoteGallrBtn()"> <span><span style="display:inline-block;width:10px;height:10px;background:${noteColor(n.color)};border:1px solid rgba(0,0,0,.2);margin-right:5px;"></span>${esc(excerpt(n.text,80)||'(tom lapp)')} <span style="color:var(--ink-faint);font-size:11px;">— klar ${n.doneAt?fmtDateSv(isoDate(new Date(n.doneAt))):''}</span></span></label>`).join('')}
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="snoozeNoteGallring(${manual?'true':'false'})">${manual ? 'Avbryt' : 'Påminn om en vecka'}</button>
+      <button class="btn danger" id="noteGallrBtn" onclick="runNoteGallring()">Gallra markerade</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  updNoteGallrBtn();
+}
+function updNoteGallrBtn(){
+  const n = document.querySelectorAll('.noteGallrPick:checked').length;
+  const b = document.getElementById('noteGallrBtn');
+  if(b){ b.textContent = `Gallra markerade (${n})`; b.disabled = !n; }
+}
+function snoozeNoteGallring(manual){
+  if(!manual){ DATA.anslag.gallringSnooze = Date.now() + 7*86400000; saveToDisk(); }
+  closeModal(); renderAll();
+}
+function runNoteGallring(){
+  const ids = [...document.querySelectorAll('.noteGallrPick:checked')].map(c=>c.value);
+  if(!ids.length) return;
+  DATA.anslag.notes = boardNotes().filter(n=>!ids.includes(n.id));
+  DATA.anslag.deleted = DATA.anslag.deleted.concat(ids).slice(-500);
+  DATA.anslag.gallringSnooze = 0;
+  saveToDisk(); closeModal(); renderAll();
+}
+/* ---- dra lappar (mus och finger) ---- */
+document.addEventListener('pointerdown', e=>{
+  const grip = e.target.closest && e.target.closest('.note .grip');
+  if(!grip || e.target.closest('button') || !DATA) return;
+  const el = grip.closest('.note');
+  const n = findNote(el.dataset.id); if(!n) return;
+  e.preventDefault();
+  n.z = nextNoteZ(); el.style.zIndex = n.z;
+  boardDrag = {el, n, sx:e.clientX, sy:e.clientY, ox:n.x||0, oy:n.y||0, nx:n.x||0, ny:n.y||0, s: window.__boardScale||1, pid:e.pointerId};
+  el.classList.add('dragging');
+  try{ grip.setPointerCapture(e.pointerId); }catch(_){}
+});
+document.addEventListener('pointermove', e=>{
+  const d = boardDrag;
+  if(!d || e.pointerId!==d.pid) return;
+  d.nx = Math.round(Math.max(0, Math.min(BOARD_W-NOTE_W, d.ox + (e.clientX-d.sx)/d.s)));
+  d.ny = Math.round(Math.max(0, d.oy + (e.clientY-d.sy)/d.s));
+  d.el.style.left = d.nx+'px'; d.el.style.top = d.ny+'px';
+  const canvas = document.getElementById('boardCanvas');
+  if(canvas && d.ny+NOTE_H+60 > parseFloat(canvas.style.height)){
+    canvas.style.height = (d.ny+NOTE_H+60)+'px'; layoutBoard();
+  }
+});
+function endBoardDrag(e){
+  const d = boardDrag;
+  if(!d || (e && e.pointerId!==d.pid)) return;
+  boardDrag = null;
+  d.el.classList.remove('dragging');
+  if(d.nx!==d.ox || d.ny!==d.oy){ d.n.x = d.nx; d.n.y = d.ny; d.n.updated = Date.now(); newNoteIds.delete(d.n.id); }
+  saveToDisk();
+}
+document.addEventListener('pointerup', endBoardDrag);
+document.addEventListener('pointercancel', endBoardDrag);
+/* stäng färgpaletten om man klickar utanför */
+document.addEventListener('click', e=>{
+  if(e.target.closest && e.target.closest('.note')) return;
+  document.querySelectorAll('.note.showColors').forEach(n=>n.classList.remove('showColors'));
+});
+function cleanNote(n){
+  if(!n || typeof n!=='object') return null;
+  const id = String(n.id||''); if(!SAFE_ID_RE.test(id)) return null;
+  const num = (v, lo, hi, def)=>{ v = Number(v); return isFinite(v) ? Math.max(lo, Math.min(hi, v)) : def; };
+  const remind = (n.remind && /^\d{4}-\d{2}-\d{2}$/.test(n.remind.date||'')) ? {date:n.remind.date, time:/^\d{2}:\d{2}$/.test(n.remind.time||'')?n.remind.time:''} : null;
+  return {id, text:String(n.text||'').slice(0,1000), color: NOTE_COLORS.some(c=>c.key===n.color)?n.color:'gul',
+    x:num(n.x,0,BOARD_W-NOTE_W,24), y:num(n.y,0,20000,24), rot:num(n.rot,-4,4,0), z:num(n.z,0,1e6,1),
+    remind, remindAck:!!n.remindAck, done:!!n.done, doneAt:num(n.doneAt,0,1e14,0),
+    created:num(n.created,0,1e14,0), updated:num(n.updated,0,1e14,0)};
+}
+function mergeNotes(list, dry){
+  const res = {added:0, updated:0, same:0, deleted:0};
+  list.forEach(raw=>{
+    const inc = cleanNote(raw); if(!inc) return;
+    if(DATA.anslag.deleted.includes(inc.id)){ res.deleted++; return; }
+    const cur = findNote(inc.id);
+    if(!cur){ res.added++; if(!dry) DATA.anslag.notes.push(inc); return; }
+    if(inc.updated <= (cur.updated||0)){ res.same++; return; }
+    res.updated++;
+    if(!dry) Object.assign(cur, inc);
+  });
+  return res;
+}
+
+/* ---------- "Exportera allt": kalender och anslagstavla bara vid aktivt val ---------- */
+function exportExtrasHtml(){
+  const ne = calEvents().length, nn = boardNotes().length;
+  return `<div class="exportExtras">
+    <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:4px;">Ska något mer följa med i den krypterade texten?</div>
+    <label class="checkwrap"><input type="checkbox" id="expInclCal" ${ne?'':'disabled'}> Ta med kalendern (${ne} händelse${ne===1?'':'r'})</label>
+    <label class="checkwrap"><input type="checkbox" id="expInclNotes" ${nn?'':'disabled'}> Ta med anslagstavlan (${nn} lapp${nn===1?'':'ar'})</label>
+    <div style="font-size:11px;color:var(--ink-faint);margin-top:4px;">Är alltid avkryssat från början så att ingen får din kalender eller dina lappar av misstag. Mottagaren får dessutom själv välja om de ska läggas till.</div>
+  </div>`;
+}
+function exportExtrasPayload(){
+  const cal = document.getElementById('expInclCal'), nts = document.getElementById('expInclNotes');
+  const parts = [];
+  if(cal && cal.checked && calEvents().length) parts.push(calPayloadLine(calEvents()));
+  if(nts && nts.checked && boardNotes().length) parts.push(notesPayloadLine(boardNotes()));
+  return parts.length ? '\n\n'+parts.join('\n') : '';
+}
+function exportExtrasTitle(){
+  const cal = document.getElementById('expInclCal'), nts = document.getElementById('expInclNotes');
+  const t = [];
+  if(cal && cal.checked) t.push('kalender');
+  if(nts && nts.checked) t.push('anslagstavla');
+  return t.length ? ' + '+t.join(' och ') : '';
+}
+
 function init(){
   appWasInstalledBefore = !!loadVault() || lsLoadRegistry().length>0;
   if(!cryptoAvailable()){
@@ -4607,6 +6163,17 @@ init();
    höj VERSION i sw.js). Efter upplåsning visas det som är nytt sedan
    användaren senast öppnade appen. Ny installation visar ingen notis. */
 const APP_CHANGELOG = [
+  {version:'2026-10-07', title:'Uppdatering 7 oktober 2026', items:[
+    'Gruppvyn: knapparna för att flytta, kopiera och redigera ligger nu först på raden, direkt intill namnet, som kompakta ikonknappar. Håll över en knapp för att se vad den gör.',
+    'Grupperna på startsidan kan fällas ihop med ▼ så att bara rubriken syns. Knapparna "Fäll ihop alla" och "Fäll ut alla" finns i verktygsraden. Valet sparas på enheten.',
+    'Ny kalender under grupperna med vecko-, månads- och årsvy. Veckorna visas i militärt format (t.ex. 641 = 2026 vecka 41, enligt ISO).',
+    'Händelser kan få flera påminnelser — ett antal dagar före start eller ett eget datum med egen text, t.ex. "Anmälan till övningen ska vara inne".',
+    'Händelser delas krypterat via Slack (Exportera/Importera händelser). Skickas samma händelse igen uppdateras den hos mottagaren, och en händelse kan markeras som Inställd.',
+    'Ny anslagstavla med postit-lappar: välj färg, dra lapparna dit du vill, lägg in "Påminn mig" med datum. Klara lappar hamnar i en hög som appen föreslår att gallra efter 30 dagar.',
+    'Räknare visar notiser för varje grupp, kalendern och anslagstavlan — klicka på räknaren för att se just de notiserna. Personer med notiser får en prick vid namnet.',
+    'Påminnelser kan visas som telefonnotis (🔔 i notisrutan) när appen är öppen eller öppnas, och antalet notiser visas som en siffra på appens ikon där enheten stöder det.',
+    '"Exportera allt" tar bara med kalendern och anslagstavlan om du kryssar i det, och mottagaren får själv välja om de ska läggas till. Inget av mottagarens eget tas bort.'
+  ]},
   {version:'2026-10-02.2', title:'Rättning 2 oktober 2026', items:[
     'Import av hela plutonen: personalen hamnar nu i rätt grupp även om grupperna har olika namn hos avsändare och mottagare.',
     'Import av grupp och av hela plutonen: varje person läggs på exakt samma rad som hos avsändaren, så vakanta rader och befattningsnummer stämmer. Kräver att avsändaren exporterar med den här versionen.'
@@ -4621,7 +6188,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v21';
+const SW_CACHE_VERSION = 'personalregister-v22';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){

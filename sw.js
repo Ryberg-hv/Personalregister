@@ -1,7 +1,7 @@
 /* Service worker för Personalregister.
    Höj VERSION vid varje ny uppladdning så att gamla filer rensas.
    Ändra samtidigt SW_CACHE_VERSION i index.html till samma värde. */
-const VERSION = 'personalregister-v21';
+const VERSION = 'personalregister-v22';
 const CORE = [
   './',
   './index.html',
@@ -49,5 +49,16 @@ self.addEventListener('fetch', event => {
       }
       return res;
     }))
+  );
+});
+
+// Klick på en påminnelse i telefonens notislista: öppna appen.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({type: 'window', includeUncontrolled: true}).then(list => {
+      for (const c of list) { if ('focus' in c) return c.focus(); }
+      return self.clients.openWindow ? self.clients.openWindow('./') : undefined;
+    })
   );
 });
