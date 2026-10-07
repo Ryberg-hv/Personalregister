@@ -546,7 +546,31 @@
   /* ---------- ikonknappar i gruppvyn (första kolumnen) ---------- */
   table.full td.actions.lead{text-align:left;width:1%;padding-right:4px;}
   table.full th.leadHead{width:1%;}
-  .rowActions.lead{justify-content:flex-start;flex-wrap:nowrap;gap:3px;}
+  .rowActions.lead{display:grid;grid-template-columns:repeat(var(--n,3),28px);gap:3px;justify-content:start;}
+  .rowActions.lead .editBtn{grid-column:2 / -1;}
+  .editBtn{
+    display:inline-flex;align-items:center;justify-content:center;gap:4px;height:28px;padding:0 6px;
+    background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent);border-radius:var(--radius);
+    font-size:12px;font-weight:700;white-space:nowrap;
+  }
+  .editBtn:hover{opacity:.9;}
+  .rowActions.lead[style*="--n:3"] .editBtn svg{display:none;}
+  .rowActions.lead .plats{grid-column:2 / -1;height:28px;width:100%;padding:0 2px;font-size:12px;}
+  .reportChoice{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
+  .reportChoice .btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:12px 14px;}
+  .reportChoice .btn strong{font-size:14px;}
+  .reportChoice .btn span{font-size:12px;font-weight:400;color:var(--ink-soft);}
+  .reportChoice .btn:hover span{color:var(--accent);}
+
+  /* ---------- hela bredden, grupper/kalender/tavla som ett sammanhängande block ---------- */
+  #app{max-width:none;}
+  #groupGrid{gap:0;}
+  #groupGrid .card, #homeGroups .homeSection{border-radius:0;margin-top:0;border-top:none;}
+  #groupGrid .card:first-child{border-top:1px solid var(--line);border-radius:var(--radius) var(--radius) 0 0;}
+  #groupGrid .card:first-child .card-head{border-top:none;}
+  #homeGroups .homeSection:last-child{border-radius:0 0 var(--radius) var(--radius);}
+  #homeGroups .card-head, #homeGroups .secHead{background:#F2F1EB;border-top:1px solid var(--line-strong);}
+  #homeGroups .card.collapsed .card-head, #homeGroups .homeSection.collapsed .secHead{background:#FAF9F5;}
   .iconBtn{
     display:inline-flex;align-items:center;justify-content:center;
     width:28px;height:28px;padding:0;flex:none;
@@ -786,7 +810,9 @@
     .calLegend{display:none;}
     .secHead{padding:10px 12px;}
     .iconBtn,.iconSelect{width:31px;height:32px;}
-    .rowActions.lead{gap:2px;}
+    .rowActions.lead{grid-template-columns:repeat(var(--n,3),31px);gap:2px;}
+    .editBtn{height:32px;}
+    .rowActions.lead .plats{height:32px;}
   }
 </style>
 </head>
@@ -2861,6 +2887,7 @@ function renderTopbar(){
   const actions = document.getElementById('topActions');
   let html = '';
   if(DATA){
+    html += `<button class="btn small" onclick="goHome()">Startsida</button>`;
     if(registerList.length){
       const options = registerList.map(r=>`<option value="${esc(r.key)}" ${r.key===currentFileName?'selected':''}>${esc(r.label)}</option>`).join('');
       html += `<span class="status" style="align-self:center;">Välj register</span>`;
@@ -2870,7 +2897,6 @@ function renderTopbar(){
     if(registerList.length>1){
       html += `<button class="btn small danger" onclick="deleteCurrentRegister()" title="Ta bort det öppna registret">Ta bort register</button>`;
     }
-    html += `<button class="btn small" onclick="goHome()">Startsida</button>`;
     html += `<button class="btn small" onclick="goOverview()">Övningsöversikt</button>`;
     html += `<button class="btn small" onclick="goGradOverview()">Grader</button>`;
     html += `<button class="btn small" onclick="goStats()">Statistik</button>`;
@@ -3001,10 +3027,15 @@ function renderBackupBanner(){
   const t = lastBackupTime();
   const days = t ? Math.floor((Date.now()-t)/86400000) : null;
   if(days!==null && days < BACKUP_REMIND_DAYS) return '';
+  const ignoredAt = Number(lsGet('backupignore:'+(currentFileName||''), 0)) || 0;
+  if(ignoredAt && Date.now()-ignoredAt < BACKUP_REMIND_DAYS*86400000) return '';
   const when = days===null ? 'Du har inte gjort någon säkerhetskopia av det här registret ännu.' : `Senaste säkerhetskopian gjordes för ${days} dagar sedan.`;
   return `<div class="banner" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
     <span>${when} Registret finns bara i appen på den här enheten — tas appen bort försvinner det. Spara en kopia i Filer eller mejla den till dig själv.</span>
-    <button class="btn primary small" onclick="exportJson()">Säkerhetskopiera nu</button>
+    <span style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn small" onclick="ignoreBackupReminder()" title="Dölj påminnelsen i ${BACKUP_REMIND_DAYS} dagar">Ignorera</button>
+      <button class="btn primary small" onclick="exportJson()">Säkerhetskopiera nu</button>
+    </span>
   </div>`;
 }
 
@@ -3017,11 +3048,6 @@ function renderHome(){
   return `
     ${renderInstallBanner()}
     ${renderBackupBanner()}
-    <div class="viewhead">
-      <div>
-        <div class="sub">Klicka på en grupps namn eller "Öppna gruppen" för att redigera, flytta personal och se kompetenser. Fäll ihop grupper du inte arbetar med med ▼.</div>
-      </div>
-    </div>
     ${columnPanelOpen ? renderColumnPanel() : ''}
     <div id="homeLayout">
       <div id="noticeBox">
@@ -3030,12 +3056,10 @@ function renderHome(){
       </div>
       <div id="homeGroups">
         <div id="reportToolbar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-          <button class="btn small" onclick="selectAllPersons()">Markera allt</button>
-          <button class="btn small" onclick="deselectAllPersons()">Avmarkera allt</button>
-          <button class="btn small" onclick="collapseAllGroups(true)" title="Visa bara gruppernas rubriker">Fäll ihop alla</button>
-          <button class="btn small" onclick="collapseAllGroups(false)">Fäll ut alla</button>
-          <button class="btn primary small" onclick="openReportModal()">Generera personalrapport</button>
-          <button class="btn primary small" onclick="openExerciseReportModal()">Generera övningsanmälan</button>
+          ${selectedPersons.size
+            ? `<button class="btn small" onclick="deselectAllPersons()">Avmarkera allt</button>`
+            : `<button class="btn small" onclick="selectAllPersons()">Markera allt</button>`}
+          <button class="btn primary small" onclick="openReportChooser()">Generera rapport</button>
           <span class="status" style="color:rgba(255,255,255,.78);align-self:center;">${selectedPersons.size} av ${totalPersons} markerade</span>
         </div>
         <div id="groupGrid">${cards}</div>
@@ -3210,14 +3234,14 @@ function renderGroupStandard(gid){
         return taken ? '' : `<option value="${i}">${esc(s.befattning||('Plats '+(i+1)))}</option>`;
       }).join('');
       return `<tr class="datarow">
-        <td class="actions lead"><div class="rowActions lead">
-          <select onchange="if(this.value!==''){assignPersonToSlot('${p.id}','${gid}',this.value);}">
-            <option value="">Tilldela plats…</option>
+        <td class="actions lead"><div class="rowActions lead" style="--n:3">
+          <button class="iconBtn" onclick="copyPersonInfoIcon('${p.id}', this)" title="Kopiera personens uppgifter">${copyIconSVG()}</button>
+          <button class="editBtn" onclick="openPersonForm('${gid}','${p.id}')" title="Redigera personens uppgifter">${ICON.edit}<span>Redigera</span></button>
+          <label class="iconSelect" title="Flytta till annan grupp"><span>${ICON.move}</span><select aria-label="Flytta till annan grupp" onchange="if(this.value){movePersonToGroup('${p.id}', this.value); this.value='';}"><option value="">Flytta till annan grupp…</option>${otherGroups.map(og=>`<option value="${og.id}">${esc(og.name)}</option>`).join('')}</select></label>
+          <select class="plats" title="Tilldela plats" onchange="if(this.value!==''){assignPersonToSlot('${p.id}','${gid}',this.value);}">
+            <option value="">Plats…</option>
             ${vacantOptions}
           </select>
-          <label class="iconSelect" title="Flytta till annan grupp"><span>${ICON.move}</span><select aria-label="Flytta till annan grupp" onchange="if(this.value){movePersonToGroup('${p.id}', this.value); this.value='';}"><option value="">Flytta till annan grupp…</option>${otherGroups.map(og=>`<option value="${og.id}">${esc(og.name)}</option>`).join('')}</select></label>
-          <button class="iconBtn" onclick="copyPersonInfoIcon('${p.id}', this)" title="Kopiera personens uppgifter">${copyIconSVG()}</button>
-          <button class="iconBtn" onclick="openPersonForm('${gid}','${p.id}')" title="Redigera">${ICON.edit}</button>
         </div></td>
         <td colspan="${cols.length}" style="font-style:italic;color:var(--warn);">Utan fast plats: <span class="${isTrainee(p)?'trainee':''}">${esc(fullName(p))}</span>${p.befattning?' ('+esc(personBefattningDisplay(p))+')':''}</td>
       </tr>`;
@@ -4860,15 +4884,38 @@ const ICON = {
 
 /* ---------- radknappar i gruppvyn (först i raden, intill namnet) ---------- */
 function rowActionsHtml(p, gid, o){
+  /* två rader: överst Kopiera + Redigera (bred), under flyttknapparna */
   const groups = (o.otherGroups||[]).map(og=>`<option value="${og.id}">${esc(og.name)}</option>`).join('');
-  return `<div class="rowActions lead">
+  const n = o.del ? 4 : 3;
+  return `<div class="rowActions lead" style="--n:${n}">
+      <button class="iconBtn" onclick="copyPersonInfoIcon('${p.id}', this)" title="Kopiera personens uppgifter" aria-label="Kopiera">${copyIconSVG()}</button>
+      <button class="editBtn" onclick="openPersonForm('${gid}','${p.id}')" title="Redigera personens uppgifter">${ICON.edit}<span>Redigera</span></button>
       <button class="iconBtn" ${o.canUp?'':'disabled'} onclick="movePerson('${p.id}',-1)" title="${esc(o.upTitle)}" aria-label="${esc(o.upTitle)}">${ICON.up}</button>
       <button class="iconBtn" ${o.canDown?'':'disabled'} onclick="movePerson('${p.id}',1)" title="${esc(o.downTitle)}" aria-label="${esc(o.downTitle)}">${ICON.down}</button>
       <label class="iconSelect" title="Flytta till annan grupp"><span>${ICON.move}</span><select aria-label="Flytta till annan grupp" onchange="if(this.value){movePersonToGroup('${p.id}', this.value); this.value='';}"><option value="">Flytta till…</option>${groups}</select></label>
-      <button class="iconBtn" onclick="copyPersonInfoIcon('${p.id}', this)" title="Kopiera personens uppgifter" aria-label="Kopiera">${copyIconSVG()}</button>
-      <button class="iconBtn" onclick="openPersonForm('${gid}','${p.id}')" title="Redigera" aria-label="Redigera">${ICON.edit}</button>
       ${o.del ? `<button class="iconBtn danger" onclick="deletePerson('${p.id}')" title="Ta bort" aria-label="Ta bort">${ICON.trash}</button>` : ''}
     </div>`;
+}
+function ignoreBackupReminder(){
+  lsSet('backupignore:'+(currentFileName||''), Date.now());
+  renderAll();
+}
+/* ett gemensamt val för rapporterna */
+function openReportChooser(){
+  const n = selectedPersons.size;
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal" style="max-width:460px;">
+    <h3>Generera rapport</h3>
+    <p style="font-size:13px;color:var(--ink-soft);">${n ? `${n} person${n===1?'':'er'} markerad${n===1?'':'e'}.` : 'Ingen personal är markerad ännu — markera personal i grupperna först.'} Vilken rapport vill du skapa?</p>
+    <div class="reportChoice">
+      <button class="btn" onclick="closeModal();openReportModal()"><strong>Personalrapport</strong><span>Excel med de uppgifter du väljer för markerad personal.</span></button>
+      <button class="btn" onclick="closeModal();openExerciseReportModal()"><strong>Övningsanmälan</strong><span>Anmälan till övning för markerad personal.</span></button>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Avbryt</button></div>
+  </div>`;
+  overlay.onclick = (e)=>{ if(e.target===overlay) closeModal(); };
+  document.body.appendChild(overlay);
 }
 function copyPersonInfoIcon(pid, btn){
   const p = DATA.persons.find(x=>x.id===pid);
@@ -6165,12 +6212,20 @@ init();
    höj VERSION i sw.js). Efter upplåsning visas det som är nytt sedan
    användaren senast öppnade appen. Ny installation visar ingen notis. */
 const APP_CHANGELOG = [
+  {version:'2026-10-07.4', title:'Justering 7 oktober 2026 (2)', items:[
+    'Påminnelsen om säkerhetskopiering har fått knappen "Ignorera". Den döljer påminnelsen i 14 dagar, sedan kommer den tillbaka om ingen säkerhetskopia har gjorts.'
+  ]},
+  {version:'2026-10-07.3', title:'Justering 7 oktober 2026', items:[
+    'Enklare verktygsrad: en knapp som växlar mellan "Markera allt" och "Avmarkera allt", och en knapp "Generera rapport" där du väljer personalrapport eller övningsanmälan.',
+    'Gruppvyn: knapparna ligger på två rader — Kopiera och en bred Redigera-knapp överst, flyttknapparna under — så att namnen syns tydligare.',
+    'Grupperna, kalendern och anslagstavlan sitter ihop utan mellanrum och använder hela skärmbredden. Startsida ligger först i menyn, och den förklarande texten överst på startsidan är borttagen.'
+  ]},
   {version:'2026-10-07.2', title:'Rättning 7 oktober 2026', items:[
     'Nya kategorier för kalenderhändelser: Övning, Insats, Möte, Utvecklingssamtal, Event och Övrigt. Händelser med de tidigare kategorierna Utbildning och Ledighet flyttas till Övrigt.'
   ]},
   {version:'2026-10-07', title:'Uppdatering 7 oktober 2026', items:[
     'Gruppvyn: knapparna för att flytta, kopiera och redigera ligger nu först på raden, direkt intill namnet, som kompakta ikonknappar. Håll över en knapp för att se vad den gör.',
-    'Grupperna på startsidan kan fällas ihop med ▼ så att bara rubriken syns. Knapparna "Fäll ihop alla" och "Fäll ut alla" finns i verktygsraden. Valet sparas på enheten.',
+    'Grupperna på startsidan kan fällas ihop med ▼ så att bara rubriken syns. Valet sparas på enheten.',
     'Ny kalender under grupperna med vecko-, månads- och årsvy. Veckorna visas i militärt format (t.ex. 641 = 2026 vecka 41, enligt ISO).',
     'Händelser kan få flera påminnelser — ett antal dagar före start eller ett eget datum med egen text, t.ex. "Anmälan till övningen ska vara inne".',
     'Händelser delas krypterat via Slack (Exportera/Importera händelser). Skickas samma händelse igen uppdateras den hos mottagaren, och en händelse kan markeras som Inställd.',
@@ -6193,7 +6248,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v23';
+const SW_CACHE_VERSION = 'personalregister-v26';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
