@@ -1374,6 +1374,7 @@ function openNewRegisterModal(){
     <div class="formgrid">
       <div class="field full"><label>Namn på registret</label><input id="nrName" placeholder="t.ex. Pluton Alpha"></div>
     </div>
+    <div id="nrRegList">${registerManageHtml()}</div>
     <p style="color:var(--ink-soft);font-size:12px;">Sparas krypterat i appen på den här enheten. Exportera regelbundet som säkerhetskopia.</p>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Avbryt</button>
@@ -6219,6 +6220,41 @@ function exportExtrasTitle(){
   return t.length ? ' + '+t.join(' och ') : '';
 }
 
+/* ---------- Radera register (från "Nytt register") ---------- */
+function registerManageHtml(){
+  const list = (typeof registerList!=='undefined' && registerList) ? registerList : [];
+  if(!list.length) return '';
+  return `<div class="field full" style="margin-top:6px;"><label>Befintliga register</label>
+    <div style="border:1px solid var(--line,#ccc);border-radius:8px;overflow:hidden;">
+    ${list.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--line,#ddd);">
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.label)}${r.key===currentFileName?' <span style="color:var(--ink-soft);font-size:12px;">(öppet)</span>':''}</span>
+      <button type="button" class="btn small danger" data-delkey="${esc(r.key)}" onclick="deleteRegisterByKey(this.dataset.delkey)">Radera</button>
+    </div>`).join('')}
+    </div></div>`;
+}
+async function deleteRegisterByKey(key){
+  const r = registerList.find(x=>x.key===key);
+  if(!r) return;
+  if(!confirm(`Radera registret "${r.label}" helt?\n\nAllt innehåll tas bort från den här enheten och går inte att ångra. Exportera en säkerhetskopia först om du vill spara det.`)) return;
+  try{ await saveChain; }catch(e){}
+  const wasCurrent = (key===currentFileName);
+  if(wasCurrent){ DATA = null; currentFileName = null; }
+  try{
+    localStorage.removeItem(LS_PREFIX+key);
+    localStorage.removeItem(LS_BACKUP_PREFIX+key);
+    if(localStorage.getItem(LS_ACTIVE)===key) localStorage.removeItem(LS_ACTIVE);
+  }catch(e){}
+  const list = lsLoadRegistry().filter(x=>x.key!==key);
+  lsSaveRegistry(list);
+  registerList = list;
+  const box = document.getElementById('nrRegList');
+  if(box) box.innerHTML = registerManageHtml();
+  if(wasCurrent){
+    if(list.length){ await loadLocalRegister(list[0].key); }
+    else { view = {name:'setup'}; renderAll(); }
+  } else { renderAll(); }
+}
+
 function init(){
   appWasInstalledBefore = !!loadVault() || lsLoadRegistry().length>0;
   if(!cryptoAvailable()){
@@ -6240,6 +6276,9 @@ init();
    höj VERSION i sw.js). Efter upplåsning visas det som är nytt sedan
    användaren senast öppnade appen. Ny installation visar ingen notis. */
 const APP_CHANGELOG = [
+  {version:'2026-10-10.4', title:'Radera register', items:[
+    'Under Nytt register finns nu en lista över dina befintliga register med knappen Radera. Ett raderat register tas bort helt från enheten, även det sista, och kommer inte tillbaka.'
+  ]},
   {version:'2026-10-10.2', title:'Justering 10 oktober 2026 (2)', items:[
     'Menyn är rensad: texterna "Välj register" och "Sparat" är borttagna.'
   ]},
@@ -6282,7 +6321,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v28';
+const SW_CACHE_VERSION = 'personalregister-v29';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
