@@ -814,6 +814,7 @@
     .editBtn{height:32px;}
     .rowActions.lead .plats{height:32px;}
   }
+  .noticeItem.kompaninotis{background:#E6F1E8;border-color:#9CC4A4;}
 </style>
 </head>
 <body>
@@ -1696,7 +1697,7 @@ function openExportModal(scope, gid){
    formatting. Instead, any line that isn't recognisable as one of our
    own "Label: value" detail lines is treated as the start of a new
    person. */
-const SLACK_DETAIL_LABEL_RE = /^(Plats|Under utbildning|Grundutbildning|Kompetenser|Avtalsövningar\s+\d{4}|Utvecklingsplan\s+\d{4}|Avtalsår innan\s+\d{4}|Stf PlutC\/PlutC sedan år)\s*:/i;
+const SLACK_DETAIL_LABEL_RE = /^(Plats|Under utbildning|Grundutbildning|Kompetenser|Avtalsövningar\s+\d{4}|Utvecklingsplan\s+\d{4}|Avtalsår innan\s+\d{4}|Stf PlutC\/PlutC sedan år|Notis från kompaniet)\s*:/i;
 function slackFieldPairs(line){
   /* Matches "Label: value" runs without depending on a specific
      separator character between them (Slack round-trips can turn our
@@ -1859,6 +1860,7 @@ function applySlackLines(p, g, lines, skipBefNr){
     else if(/^Avtalsövningar\s+\d{4}:/i.test(line)) applySlackAvtalOvning(p, line);
     else if(/^Utvecklingsplan\s+\d{4}:/i.test(line)) applySlackPlan(p, line);
     else if(/^Avtalsår innan\s+\d{4}:/i.test(line)) applySlackYearsBefore(p, line);
+    else if(/^Notis från kompaniet:/i.test(line)) applySlackKompNotis(p, line);
     else if(/^Stf PlutC\/PlutC sedan år:/i.test(line)) applySlackPlutcSedanAr(p, line);
     else applySlackFieldsLine(p, g, line, skipBefNr);
   });
@@ -2890,7 +2892,6 @@ function renderTopbar(){
     html += `<button class="btn small" onclick="goHome()">Startsida</button>`;
     if(registerList.length){
       const options = registerList.map(r=>`<option value="${esc(r.key)}" ${r.key===currentFileName?'selected':''}>${esc(r.label)}</option>`).join('');
-      html += `<span class="status" style="align-self:center;">Välj register</span>`;
       html += `<select class="btn small" id="registerSelect" title="Byt register" onchange="onRegisterSelect(this.value)" style="max-width:190px;">${options}</select>`;
     }
     html += `<button class="btn small" onclick="openNewRegisterModal()" title="Skapa ett nytt, separat register">+ Nytt register</button>`;
@@ -2905,7 +2906,6 @@ function renderTopbar(){
     html += `<button class="btn small" onclick="toggleColumnPanel()">Ordna uppgifter</button>`;
     html += `<button class="btn small" onclick="lockApp()" title="Lås appen">🔒 Lås</button>`;
     html += `<button class="btn small" onclick="startChangePin()">Byt PIN-kod</button>`;
-    html += `<span class="status" id="saveStatus">Sparat</span>`;
     html += `<button class="btn small" onclick="exportJson()">Exportera JSON</button>`;
     html += `<label class="btn small" style="margin:0;">Importera<input type="file" accept="application/json" style="display:none" onchange="importJson(this.files[0])"></label>`;
   }
@@ -4967,10 +4967,38 @@ function computeAllNotices(){
         sortKey:-250000, ackCall:'openGallringModal(true)', ackLabel:'Gallra…'});
     }
   }catch(e){}
-  const all = base.concat(extra, calendarNotices(), boardNotices());
+  const all = base.concat(extra, kompaniNotices(), calendarNotices(), boardNotices());
   const rank = n=>(n.level==='red'?0:1);
   all.sort((a,b)=> rank(a)-rank(b) || (a.sortKey||0)-(b.sortKey||0));
   return all;
+}
+/* ---------- notis från kompaniet (Övrigt-text som följer med ny personal) ----------
+   Kompaniregistret kan skriva en kort text per person vid export. Den läses in
+   som p.kompNotis och visas som en notis tills mottagaren trycker "Noterat".
+   Skickas en ny text för samma person visas den igen. */
+function applySlackKompNotis(p, line){
+  const txt = String(line).replace(/^\s*Notis från kompaniet\s*:\s*/i,'').trim();
+  if(txt === (p.kompNotis||'')) return;
+  p.kompNotis = txt;
+  p.kompNotisAck = false;
+}
+function kompaniNotices(){
+  const out = [];
+  ((DATA && DATA.persons) || []).forEach(p=>{
+    if(!p.kompNotis || p.kompNotisAck) return;
+    const g = getGroup(p.groupId);
+    out.push({kind:'kompaninotis', section:'g:'+p.groupId, gid:p.groupId, pid:p.id, level:'orange',
+      groupName: g ? g.name : '', personName: fullName(p),
+      text: 'Från kompaniet: '+p.kompNotis, sortKey:-260000,
+      ackCall:`ackKompNotis('${p.id}')`, ackLabel:'Noterat'});
+  });
+  return out;
+}
+function ackKompNotis(pid){
+  const p = DATA.persons.find(x=>x.id===pid);
+  if(!p) return;
+  p.kompNotisAck = true;
+  saveToDisk(); renderAll();
 }
 function refreshNoticeCache(){
   if(DATA) ensureKalAnslag(DATA);
@@ -6212,6 +6240,12 @@ init();
    höj VERSION i sw.js). Efter upplåsning visas det som är nytt sedan
    användaren senast öppnade appen. Ny installation visar ingen notis. */
 const APP_CHANGELOG = [
+  {version:'2026-10-10.2', title:'Justering 10 oktober 2026 (2)', items:[
+    'Menyn är rensad: texterna "Välj register" och "Sparat" är borttagna.'
+  ]},
+  {version:'2026-10-10', title:'Uppdatering 10 oktober 2026', items:[
+    'Förberedd för Kompaniregistret: när kompaniet skickar ny personal kan en kort text (t.ex. "Önskar understödsgrupp") följa med. Den visas som en notis med knappen "Noterat" vid personen i Ny personal. Äldre exporter fungerar som förut.'
+  ]},
   {version:'2026-10-07.4', title:'Justering 7 oktober 2026 (2)', items:[
     'Påminnelsen om säkerhetskopiering har fått knappen "Ignorera". Den döljer påminnelsen i 14 dagar, sedan kommer den tillbaka om ingen säkerhetskopia har gjorts.'
   ]},
@@ -6248,7 +6282,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v26';
+const SW_CACHE_VERSION = 'personalregister-v28';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
