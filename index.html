@@ -3954,11 +3954,12 @@ function renderPerson(pid, tab){
     <div class="viewhead">
       <div>
         <h2><span class="${isTrainee(p)?'trainee':''}">${esc(fullName(p))}</span>${traineeTag}</h2>
-        <div class="sub">${esc(personBefattningDisplay(p)||'—')} · ${esc(g.name)}${isRecruit ? ' · Steg: '+esc(recruitStepText(p)) : ''}</div>
+        <div class="sub">${esc(personBefattningDisplay(p)||'—')} · ${esc(g.name)}${isRecruit ? ' · Steg: '+esc(recruitStepText(p)) : ''}</div>${releaseLogLine(p)}
       </div>
       <div class="headActions">
         <button class="btn small" onclick="copyPersonInfo('${p.id}', this)">Kopiera uppgifter</button>
         <button class="btn small" onclick="openPersonForm('${g.id}','${p.id}')">Redigera uppgifter</button>
+        <button class="btn small" onclick="openReleaseModal('${p.id}')">Lämna ut uppgifter</button>
       </div>
     </div>
     ${(()=>{
@@ -6255,6 +6256,243 @@ async function deleteRegisterByKey(key){
   } else { renderAll(); }
 }
 
+/* ---------- Lämna ut uppgifter (PDF med sekretessmarkering) ---------- */
+const PDF_W = {R: [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584, 761, 556, 556, 222, 556, 333, 1000, 556, 556, 333, 1000, 667, 333, 1000, 556, 611, 556, 556, 222, 222, 333, 333, 350, 556, 1000, 333, 1000, 500, 333, 944, 556, 500, 667, 278, 333, 556, 556, 556, 556, 260, 556, 333, 737, 370, 556, 584, 333, 737, 333, 400, 584, 333, 333, 333, 556, 537, 278, 333, 333, 365, 556, 834, 834, 834, 611, 667, 667, 667, 667, 667, 667, 1000, 722, 667, 667, 667, 667, 278, 278, 278, 278, 722, 722, 778, 778, 778, 778, 778, 584, 778, 722, 722, 722, 722, 667, 667, 611, 556, 556, 556, 556, 556, 556, 889, 500, 556, 556, 556, 556, 278, 278, 278, 278, 556, 556, 556, 556, 556, 556, 556, 584, 611, 556, 556, 556, 556, 500, 556, 500], B: [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584, 761, 556, 611, 278, 556, 500, 1000, 556, 556, 333, 1000, 667, 333, 1000, 611, 611, 611, 611, 278, 278, 500, 500, 350, 556, 1000, 333, 1000, 556, 333, 944, 611, 500, 667, 278, 333, 556, 556, 556, 556, 280, 556, 333, 737, 370, 556, 584, 333, 737, 333, 400, 584, 333, 333, 333, 611, 556, 278, 333, 333, 365, 556, 834, 834, 834, 611, 722, 722, 722, 722, 722, 722, 1000, 722, 667, 667, 667, 667, 278, 278, 278, 278, 722, 722, 778, 778, 778, 778, 778, 584, 778, 722, 722, 722, 722, 667, 667, 611, 556, 556, 556, 556, 556, 556, 889, 556, 556, 556, 556, 556, 278, 278, 278, 278, 611, 611, 611, 611, 611, 611, 611, 584, 611, 611, 611, 611, 611, 556, 611, 556]};
+const CP1252_EXTRA = {'€':128,'‚':130,'„':132,'…':133,'†':134,'‡':135,'‰':137,'‹':139,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'™':153,'›':155};
+function pdfCodes(s){
+  const out = [];
+  for(const ch of String(s==null?'':s)){
+    let c = ch.codePointAt(0);
+    if(CP1252_EXTRA[ch]) c = CP1252_EXTRA[ch];
+    else if(c===9) c = 32;
+    else if(c<32) continue;
+    else if(c>255) c = 63;
+    out.push(c);
+  }
+  return out;
+}
+function pdfStrW(s, f, size){
+  let w = 0;
+  pdfCodes(s).forEach(c=>{ w += (PDF_W[f][c-32]||556); });
+  return w*size/1000;
+}
+function pdfEsc(s){
+  return pdfCodes(s).map(c=>{
+    const ch = String.fromCharCode(c);
+    return (ch==='(' || ch===')' || ch==='\\') ? '\\'+ch : ch;
+  }).join('');
+}
+function pdfWrap(text, f, size, maxw){
+  const lines = [];
+  String(text==null?'':text).split(/\r?\n/).forEach(par=>{
+    const words = par.split(/\s+/).filter(Boolean);
+    if(!words.length){ lines.push(''); return; }
+    let cur = '';
+    words.forEach(w=>{
+      while(pdfStrW(w,f,size) > maxw){
+        let k = w.length;
+        while(k>1 && pdfStrW(w.slice(0,k),f,size) > maxw) k--;
+        if(cur){ lines.push(cur); cur=''; }
+        lines.push(w.slice(0,k)); w = w.slice(k);
+      }
+      const t = cur ? cur+' '+w : w;
+      if(cur && pdfStrW(t,f,size) > maxw){ lines.push(cur); cur = w; } else cur = t;
+    });
+    lines.push(cur);
+  });
+  return lines;
+}
+
+/* Samlar uppgifterna som delar med nyckel. Svärtade delar läggs aldrig in som text. */
+function releaseSections(p){
+  const g = getGroup(p.groupId) || {name:''};
+  const slot = (g.kind==='standard' && p.slotIndex!=null && g.slots) ? g.slots[p.slotIndex] : null;
+  const fieldVal = key=>{
+    if(key==='befattning') return personBefattning(p) || '';
+    if(key==='befattningsnummer') return (slot && slot.befattningsnummer) || p.befattningsnummer || '';
+    return p[key] || '';
+  };
+  const fields = [{key:'f:grupp', label:'Grupp', value:g.name || ''}];
+  if(p.enhet){ const eg = getGroup(p.enhet); fields.push({key:'f:enhet', label:'Enhet', value: eg ? eg.name : p.enhet}); }
+  FIELD_DEFS.forEach(f=>{ if(f.key==='befattningsnummer') return; const v = fieldVal(f.key); if(v) fields.push({key:'f:'+f.key, label:f.label, value:String(v)}); });
+  fields.sort((a,b)=> (a.key==='f:namn'?-1:0) - (b.key==='f:namn'?-1:0));
+  const secs = [];
+  const held = DATA.competencies.filter(c=>p.kompetenser[c.id] && p.kompetenser[c.id].has);
+  secs.push({key:'s:komp', title:'Kompetenser', rows: held.map(c=>[c.label, (c.expiry && p.kompetenser[c.id].utgangsdatum) ? 'Utgångsdatum '+p.kompetenser[c.id].utgangsdatum : '']), empty:'Inga registrerade kompetenser.'});
+  const ov = [];
+  ov.push(['Avtalsår uppfyllda innan '+YEAR_START, String(p.avtalsarInnanStart||0)]);
+  if(p.plutcSedanAr) ov.push(['Stf PlutC/PlutC sedan år', String(p.plutcSedanAr)]);
+  if(p.underUtbildning) ov.push(['Grundutbildning', 'Under utbildning (blåbandare)']);
+  else if(p.grundutbKlar) ov.push(['Grundutbildning', 'Klar']);
+  YEARS.forEach(y=>{
+    const o = p.ovningar[y] || {};
+    const txt = EXERCISE_TYPES.map(t=>{
+      const st = o[t.key] || {};
+      const s = st.status==='narvarande' ? 'Närvarande' : st.status==='franvarande' ? 'Frånvarande'+(st.anledning?' ('+st.anledning+')':'') : '—';
+      return t.label+': '+s;
+    }).join('   ');
+    ov.push([String(y), txt]);
+  });
+  secs.push({key:'s:ovn', title:'Övningar', rows: ov});
+  const plan = YEARS.filter(y=>(p.utvecklingsplan[y]||'').trim()).map(y=>[String(y), p.utvecklingsplan[y].trim()]);
+  secs.push({key:'s:plan', title:'Utvecklingsplan', rows: plan, empty:'Inga anteckningar.'});
+  if(g.kind==='recruit'){
+    secs.push({key:'s:rek', title:'Rekrytering', rows:[['Steg', recruitStepText(p)]]});
+  }
+  const nt = [];
+  if(p.kompNotis) nt.push(['Notis från kompaniet', p.kompNotis]);
+  if(p.utText) nt.push(['Text till enheten', p.utText]);
+  if(nt.length) secs.push({key:'s:notis', title:'Notiser', rows: nt});
+  return {fields, secs};
+}
+
+function buildReleasePdf(p, masked){
+  const W = 595.28, H = 841.89, M = 50, CW = W - 2*M;
+  const pages = [[]]; let y = M;
+  const cur = ()=>pages[pages.length-1];
+  const newPage = ()=>{ pages.push([]); y = M; };
+  const ensure = h=>{ if(y + h > H - 60) newPage(); };
+  const PY = v=>(H - v).toFixed(2);
+  const text = (s, x, yy, f, size, gray)=>{ cur().push(`BT /F${f==='B'?2:1} ${size} Tf ${gray||0} g ${x.toFixed(2)} ${PY(yy)} Td (${pdfEsc(s)}) Tj ET`); };
+  const rect = (x, yy, w, h, gray)=>{ cur().push(`${gray} g ${x.toFixed(2)} ${PY(yy+h)} ${w.toFixed(2)} ${h.toFixed(2)} re f`); };
+  const rule = (yy, gray)=>{ cur().push(`${gray} G 0.6 w ${M} ${PY(yy)} m ${W-M} ${PY(yy)} l S`); };
+  const BAR = (x, yy, w, h)=>rect(x, yy, w, h, 0);
+  const g = getGroup(p.groupId) || {name:''};
+  const nameMasked = masked.has('f:namn');
+  const app = document.title || 'Personalregister';
+  const regName = (DATA.title || currentRegisterLabel() || '');
+  const now = new Date();
+  const stamp = now.toLocaleDateString('sv-SE') + ' ' + now.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'});
+  const S = releaseSections(p);
+
+  /* rubrik */
+  text('Utdrag ur personalregister', M, y+16, 'B', 18, 0.1); y += 26;
+  rule(y, 0.6); y += 14;
+  const meta = [['Register', regName + ' (' + app + ')'], ['Förband', ((DATA.kompani||'')+' '+(DATA.pluton||'')).trim() || '—'], ['Utdraget skapat', stamp]];
+  meta.forEach(([k,v])=>{ text(k, M, y+9, 'B', 9.5, 0.35); pdfWrap(v,'R',9.5,CW-110).forEach((ln,i)=>{ text(ln, M+110, y+9+i*12.5, 'R', 9.5, 0); }); y += 13 + (pdfWrap(v,'R',9.5,CW-110).length-1)*12.5; });
+  y += 6; rule(y, 0.6); y += 18;
+
+  const heading = t=>{ ensure(40); text(t, M, y+12, 'B', 12.5, 0.1); y += 18; };
+  const kvRow = (label, value, isMasked)=>{
+    const lw = 150, vw = CW - lw - 6;
+    const lines = isMasked ? [''] : pdfWrap(value,'R',10,vw);
+    const h = Math.max(1, lines.length) * 13 + 3;
+    ensure(h);
+    const ll = pdfWrap(label,'B',9.5,lw-8);
+    ll.forEach((ln,i)=>text(ln, M, y+10+i*12, 'B', 9.5, 0.3));
+    if(isMasked) BAR(M+lw, y+1, 150, 11);
+    else lines.forEach((ln,i)=>text(ln, M+lw, y+10+i*13, 'R', 10, 0));
+    y += Math.max(h, ll.length*12+3);
+  };
+  /* Personuppgifter */
+  heading('Personuppgifter');
+  S.fields.forEach(f=>kvRow(f.label, f.value, masked.has(f.key)));
+  y += 8;
+  /* sektioner */
+  S.secs.forEach(s=>{
+    heading(s.title);
+    if(masked.has(s.key)){
+      ensure(34); BAR(M, y, CW, 28); y += 36; return;
+    }
+    if(!s.rows.length){ ensure(16); text(s.empty||'—', M, y+10, 'R', 10, 0.35); y += 18; }
+    s.rows.forEach(r=>kvRow(r[0], r[1], false));
+    y += 8;
+  });
+  if(masked.size){
+    ensure(40); rule(y, 0.6); y += 12;
+    pdfWrap('Svärtade uppgifter är sekretessmarkerade och har inte lämnats ut. Uppgifterna finns inte i den här filen.','R',9,CW).forEach((ln,i)=>text(ln, M, y+9+i*12, 'R', 9, 0.3));
+  }
+  /* sidfot */
+  const total = pages.length;
+  const foot = 'Utdrag ur ' + app + ', register "' + regName + '"' + (nameMasked ? '' : ' · ' + fullName(p));
+  pages.forEach((ops,i)=>{
+    const save = pages.length; // inget
+    const wrapText = (s,x,yy,f,size,gray)=>ops.push(`BT /F${f==='B'?2:1} ${size} Tf ${gray} g ${x.toFixed(2)} ${PY(yy)} Td (${pdfEsc(s)}) Tj ET`);
+    ops.push(`0.6 G 0.6 w ${M} ${PY(H-48)} m ${W-M} ${PY(H-48)} l S`);
+    let ft = foot; while(ft.length>8 && pdfStrW(ft,'R',8) > CW-70) ft = ft.slice(0,-2);
+    wrapText(ft, M, H-36, 'R', 8, 0.35);
+    const pn = 'Sida '+(i+1)+' av '+total;
+    wrapText(pn, W-M-pdfStrW(pn,'R',8), H-36, 'R', 8, 0.35);
+  });
+
+  /* PDF-dokument */
+  const objs = [];
+  objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  const kids = pages.map((_,i)=>(6+i*2)+' 0 R').join(' ');
+  objs[2] = `<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`;
+  objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objs[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  const ttl = nameMasked ? 'Utdrag ur personalregister' : 'Utdrag ' + fullName(p);
+  const hex = Array.from(ttl).map(ch=>ch.charCodeAt(0).toString(16).padStart(4,'0')).join('');
+  objs[5] = `<< /Title <FEFF${hex}> /Producer (${pdfEsc(app)}) >>`;
+  pages.forEach((ops,i)=>{
+    const body = ops.join('\n');
+    objs[5+i*2+1] = `<< /Length ${body.length} >>\nstream\n${body}\nendstream`;
+    objs[5+i*2+2] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${5+i*2+1} 0 R >>`;
+  });
+  /* sidobjekten ligger på 6,8,... (sida) och 7,9,... (innehåll): byt plats så Kids stämmer */
+  const fixed = [];
+  fixed[1]=objs[1]; fixed[2]=objs[2]; fixed[3]=objs[3]; fixed[4]=objs[4]; fixed[5]=objs[5];
+  pages.forEach((ops,i)=>{
+    fixed[6+i*2] = objs[5+i*2+2].replace(/\/Contents \d+ 0 R/, `/Contents ${7+i*2} 0 R`);
+    fixed[7+i*2] = objs[5+i*2+1];
+  });
+  let out = '%PDF-1.4\n'; const offs = [];
+  for(let i=1;i<fixed.length;i++){ offs[i] = out.length; out += `${i} 0 obj\n${fixed[i]}\nendobj\n`; }
+  const xr = out.length;
+  out += `xref\n0 ${fixed.length}\n0000000000 65535 f \n` + offs.slice(1).map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('');
+  out += `trailer\n<< /Size ${fixed.length} /Root 1 0 R /Info 5 0 R >>\nstartxref\n${xr}\n%%EOF`;
+  const bytes = new Uint8Array(out.length);
+  for(let i=0;i<out.length;i++) bytes[i] = out.charCodeAt(i) & 255;
+  return new Blob([bytes], {type:'application/pdf'});
+}
+
+function openReleaseModal(pid){
+  const p = DATA.persons.find(x=>x.id===pid); if(!p) return;
+  const S = releaseSections(p);
+  const row = (key,label)=>`<label class="checkwrap" style="display:flex;gap:8px;align-items:center;padding:3px 0;"><input type="checkbox" class="relMask" value="${esc(key)}"><span>${esc(label)}</span></label>`;
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal">
+    <h3>Lämna ut uppgifter</h3>
+    <p style="font-size:13px;color:var(--ink-soft);margin:0 0 8px;">Alla uppgifter om ${esc(fullName(p))} kommer med i PDF:en. Bocka i det som omfattas av sekretess, eller som kan skada eller medföra men för personen om det lämnas ut. Det blir svärtat, och texten finns inte kvar i filen.</p>
+    <div style="font-weight:600;font-size:12px;margin:8px 0 2px;">Personuppgifter</div>
+    ${S.fields.map(f=>row(f.key, f.label)).join('')}
+    <div style="font-weight:600;font-size:12px;margin:10px 0 2px;">Delar</div>
+    ${S.secs.map(s=>row(s.key, s.title)).join('')}
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Avbryt</button>
+      <button class="btn primary" id="relGo">Skapa PDF</button>
+    </div>
+  </div>`;
+  overlay.onclick = e=>{ if(e.target===overlay) closeModal(); };
+  document.body.appendChild(overlay);
+  overlay.querySelector('#relGo').onclick = ()=>createRelease(pid);
+}
+async function createRelease(pid){
+  const p = DATA.persons.find(x=>x.id===pid); if(!p) return;
+  const keys = Array.from(document.querySelectorAll('.relMask:checked')).map(x=>x.value);
+  const masked = new Set(keys);
+  const S = releaseSections(p);
+  const labels = keys.map(k=>{ const f = S.fields.find(x=>x.key===k) || S.secs.find(x=>x.key===k); return f ? (f.label || f.title) : k; });
+  closeModal();
+  const blob = buildReleasePdf(p, masked);
+  const d = new Date();
+  const base = masked.has('f:namn') ? 'Utdrag' : 'Utdrag_' + sanitizeFileBase(fullName(p)).replace(/\s+/g,'_');
+  const ok = await deliverFile(blob, base + '_' + d.toISOString().slice(0,10) + '.pdf');
+  if(ok === false) return;
+  if(!Array.isArray(p.utlamnat)) p.utlamnat = [];
+  p.utlamnat.push({t: d.toISOString(), svartat: labels});
+  saveToDisk(); renderAll();
+}
+function releaseLogLine(p){
+  const l = Array.isArray(p.utlamnat) ? p.utlamnat : [];
+  if(!l.length) return '';
+  const last = new Date(l[l.length-1].t);
+  const s = last.toLocaleDateString('sv-SE') + ' ' + last.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'});
+  return `<div style="font-size:12px;opacity:.7;margin-top:3px;">Uppgifter senast utlämnade ${esc(s)}${l.length>1 ? ' ('+l.length+' utlämnanden)' : ''}</div>`;
+}
+
 function init(){
   appWasInstalledBefore = !!loadVault() || lsLoadRegistry().length>0;
   if(!cryptoAvailable()){
@@ -6276,6 +6514,11 @@ init();
    höj VERSION i sw.js). Efter upplåsning visas det som är nytt sedan
    användaren senast öppnade appen. Ny installation visar ingen notis. */
 const APP_CHANGELOG = [
+  {version:'2026-10-11', title:'Lämna ut uppgifter', items:[
+    'I personkortet finns knappen "Lämna ut uppgifter". Den skapar en PDF med allt som finns om personen och anger vilket register utdraget kommer från.',
+    'Innan PDF:en skapas bockar du i det som omfattas av sekretess eller kan skada den enskilde. Det blir svärtat i PDF:en, och texten finns inte kvar i filen.',
+    'Personkortet visar när uppgifter senast lämnats ut.'
+  ]},
   {version:'2026-10-10.4', title:'Radera register', items:[
     'Under Nytt register finns nu en lista över dina befintliga register med knappen Radera. Ett raderat register tas bort helt från enheten, även det sista, och kommer inte tillbaka.'
   ]},
@@ -6321,7 +6564,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v29';
+const SW_CACHE_VERSION = 'personalregister-v30';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
