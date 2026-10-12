@@ -908,6 +908,7 @@ const DEFAULT_COMPETENCIES = [
   {id:'skarpskytt', label:'Skarpskytt', expiry:false, showInStats:true},
   {id:'prickskytt', label:'Prickskytt', expiry:false, showInStats:true},
   {id:'sjukvard', label:'Sjukvård', expiry:false, showInStats:true},
+  {id:'instruktor', label:'Instruktör', expiry:false, showInStats:true},
   {id:'aktiv_instruktor', label:'Aktiv instruktör', expiry:false, showInStats:true},
   {id:'gu', label:'GU', expiry:false, showInStats:true},
   {id:'guf', label:'GUF', expiry:false, showInStats:true},
@@ -975,23 +976,23 @@ const RECRUIT_STEP_MAP = Object.fromEntries(RECRUIT_STEPS.map(s=>[s.key,s]));
 function slots(list){ return list.map(b=>({befattning:b, befattningsnummer:''})); }
 
 const DEFAULT_GROUPS = [
-  {id:'g1', name:'Grupp 1', kind:'standard', slots: slots([
+  {id:'g1', name:'Chefsgrupp', kind:'standard', slots: slots([
     'PlutC','Stf PlutC','Signalist','Signalist',
     'Soldat','Hundförare','Hundförare'
   ])},
-  {id:'g2', name:'Grupp 2', kind:'standard', slots: slots([
+  {id:'g2', name:'Grupp 1', kind:'standard', slots: slots([
     'GrpC','Stf GrpC','Soldat','Soldat',
     'Soldat','Soldat','Soldat','Soldat','Soldat'
   ])},
-  {id:'g3', name:'Grupp 3', kind:'standard', slots: slots([
+  {id:'g3', name:'Grupp 2', kind:'standard', slots: slots([
     'GrpC','Stf GrpC','Soldat','Soldat',
     'Soldat','Soldat','Soldat','Soldat','Soldat'
   ])},
-  {id:'g4', name:'Grupp 4', kind:'standard', slots: slots([
+  {id:'g4', name:'Grupp 3', kind:'standard', slots: slots([
     'GrpC','Stf GrpC','Soldat','Soldat',
     'Soldat','Soldat','Soldat','Soldat','Soldat'
   ])},
-  {id:'g5', name:'Grupp 5', kind:'standard', slots: slots([
+  {id:'g5', name:'Grupp 4', kind:'standard', slots: slots([
     'GrpC','Stf GrpC','Soldat','Soldat',
     'Soldat','Soldat','Soldat','Soldat','Soldat'
   ])},
@@ -1298,6 +1299,7 @@ function hydrateData(parsed){
   ensureBandvagnOrder(parsed);
   ensureAdr13Order(parsed);
   ensureKomp2026Order(parsed);
+  ensureInstruktorOrder(parsed);
   ensureCompetencyStatsFlags(parsed.competencies);
   if(!parsed.mal) parsed.mal = {};
   ensureNotiser(parsed);
@@ -2852,8 +2854,8 @@ function primaryGroupsStatus(){
 function reserveBanner(){
   const st = primaryGroupsStatus();
   return st.full
-    ? `<div class="banner info" style="margin-bottom:16px;">Grupp 1–5 är fulltaliga (${st.filled}/${st.totalSlots}) — personalreserven kan användas.</div>`
-    : `<div class="banner info" style="margin-bottom:16px;">Grupp 1–5 har fortfarande ${st.vacant} lediga platser (${st.filled}/${st.totalSlots} fyllda). Personalreserven är avsedd att användas först när grupp 1–5 är fulltaliga.</div>`;
+    ? `<div class="banner info" style="margin-bottom:16px;">Alla grupper är fulltaliga (${st.filled}/${st.totalSlots}) — personalreserven kan användas.</div>`
+    : `<div class="banner info" style="margin-bottom:16px;">Grupperna har fortfarande ${st.vacant} lediga platser (${st.filled}/${st.totalSlots} fyllda). Personalreserven är avsedd att användas först när grupp 1–5 är fulltaliga.</div>`;
 }
 
 /* ---------- top bar ---------- */
@@ -3094,7 +3096,7 @@ function renderStandardCard(g){
     ? `<div style="padding:8px 14px;font-size:12px;color:var(--warn);">Det finns personal utan fast plats i gruppen — öppna gruppen för att tilldela plats.</div>` : '';
   const reserveNote = g.id==='g6'
     ? (()=>{ const st = primaryGroupsStatus();
-        return `<div style="padding:8px 14px;font-size:12px;color:${st.full?'var(--accent)':'var(--warn)'};">${st.full ? `Grupp 1–5 fulltaliga — reserven kan användas.` : `Grupp 1–5 har ${st.vacant} lediga platser kvar innan reserven är avsedd att användas.`}</div>`;
+        return `<div style="padding:8px 14px;font-size:12px;color:${st.full?'var(--accent)':'var(--warn)'};">${st.full ? `Alla grupper fulltaliga — reserven kan användas.` : `Grupperna har ${st.vacant} lediga platser kvar innan reserven är avsedd att användas.`}</div>`;
       })()
     : '';
   return `<div class="card kind-standard ${isCollapsed(g.id)?'collapsed':''}">
@@ -6256,6 +6258,12 @@ async function deleteRegisterByKey(key){
   } else { renderAll(); }
 }
 
+function ensureInstruktorOrder(data){
+  if(data.instruktorOrderApplied) return;
+  placeCompetencyAfter(data.competencies, 'instruktor', 'sjukvard');
+  data.instruktorOrderApplied = true;
+}
+
 /* ---------- Lämna ut uppgifter (PDF med sekretessmarkering) ---------- */
 const PDF_W = {R: [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584, 761, 556, 556, 222, 556, 333, 1000, 556, 556, 333, 1000, 667, 333, 1000, 556, 611, 556, 556, 222, 222, 333, 333, 350, 556, 1000, 333, 1000, 500, 333, 944, 556, 500, 667, 278, 333, 556, 556, 556, 556, 260, 556, 333, 737, 370, 556, 584, 333, 737, 333, 400, 584, 333, 333, 333, 556, 537, 278, 333, 333, 365, 556, 834, 834, 834, 611, 667, 667, 667, 667, 667, 667, 1000, 722, 667, 667, 667, 667, 278, 278, 278, 278, 722, 722, 778, 778, 778, 778, 778, 584, 778, 722, 722, 722, 722, 667, 667, 611, 556, 556, 556, 556, 556, 556, 889, 500, 556, 556, 556, 556, 278, 278, 278, 278, 556, 556, 556, 556, 556, 556, 556, 584, 611, 556, 556, 556, 556, 500, 556, 500], B: [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584, 761, 556, 611, 278, 556, 500, 1000, 556, 556, 333, 1000, 667, 333, 1000, 611, 611, 611, 611, 278, 278, 500, 500, 350, 556, 1000, 333, 1000, 556, 333, 944, 611, 500, 667, 278, 333, 556, 556, 556, 556, 280, 556, 333, 737, 370, 556, 584, 333, 737, 333, 400, 584, 333, 333, 333, 611, 556, 278, 333, 333, 365, 556, 834, 834, 834, 611, 722, 722, 722, 722, 722, 722, 1000, 722, 667, 667, 667, 667, 278, 278, 278, 278, 722, 722, 778, 778, 778, 778, 778, 584, 778, 722, 722, 722, 722, 667, 667, 611, 556, 556, 556, 556, 556, 556, 889, 556, 556, 556, 556, 556, 278, 278, 278, 278, 611, 611, 611, 611, 611, 611, 611, 584, 611, 611, 611, 611, 611, 556, 611, 556]};
 const CP1252_EXTRA = {'€':128,'‚':130,'„':132,'…':133,'†':134,'‡':135,'‰':137,'‹':139,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'™':153,'›':155};
@@ -6514,6 +6522,10 @@ init();
    höj VERSION i sw.js). Efter upplåsning visas det som är nytt sedan
    användaren senast öppnade appen. Ny installation visar ingen notis. */
 const APP_CHANGELOG = [
+  {version:'2026-10-12', title:'Justering 12 oktober 2026', items:[
+    'Ny kompetens: Instruktör, placerad mellan Sjukvård och Aktiv instruktör.',
+    'Nya plutonsregister får gruppnamnen Chefsgrupp och Grupp 1–4. Befintliga register behåller sina namn, och du kan själv döpa om dem.'
+  ]},
   {version:'2026-10-11', title:'Lämna ut uppgifter', items:[
     'I personkortet finns knappen "Lämna ut uppgifter". Den skapar en PDF med allt som finns om personen och anger vilket register utdraget kommer från.',
     'Innan PDF:en skapas bockar du i det som omfattas av sekretess eller kan skada den enskilde. Det blir svärtat i PDF:en, och texten finns inte kvar i filen.',
@@ -6564,7 +6576,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v30';
+const SW_CACHE_VERSION = 'personalregister-v31';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
