@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Personalregister</title>
+<title>Plutonsregister</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#102442">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Personalregister">
+<meta name="apple-mobile-web-app-title" content="Plutonsregister">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <style>
@@ -913,6 +913,7 @@ const DEFAULT_COMPETENCIES = [
   {id:'instruktor', label:'Instruktör', expiry:false, showInStats:true},
   {id:'aktiv_instruktor', label:'Aktiv instruktör', expiry:false, showInStats:true},
   {id:'gu', label:'GU', expiry:false, showInStats:true},
+  {id:'fmu', label:'FMU', expiry:false, showInStats:true},
   {id:'guf', label:'GUF', expiry:false, showInStats:true},
   {id:'grpc1', label:'GrpC1', expiry:false, showInStats:false},
   {id:'grpc2', label:'GrpC2', expiry:false, showInStats:false},
@@ -935,10 +936,10 @@ const GRADES = [
   {label:'Menig',        level:1,  bef:null, comps:['GUF'], minYears:null},
   /* Menig 1: GU, eller genomförd grundutbildning som blåbandare
      (4 avtalsövningar, noterad i notisrutan — se p.grundutbKlar). */
-  {label:'Menig 1',      level:2,  bef:null, comps:['GU'], orGrundutb:true, minYears:null},
-  {label:'Menig 2',      level:3,  bef:null, compsAny:['GU','GUF'], minYears:2},
-  {label:'Menig 3',      level:4,  bef:null, compsAny:['GU','GUF'], minYears:5},
-  {label:'Menig 4',      level:5,  bef:null, compsAny:['GU','GUF'], minYears:8},
+  {label:'Menig 1',      level:2,  bef:null, compsAny:['GU','FMU'], orGrundutb:true, minYears:null},
+  {label:'Menig 2',      level:3,  bef:null, compsAny:['GU','FMU','GUF'], minYears:2},
+  {label:'Menig 3',      level:4,  bef:null, compsAny:['GU','FMU','GUF'], minYears:5},
+  {label:'Menig 4',      level:5,  bef:null, compsAny:['GU','FMU','GUF'], minYears:8},
   {label:'Vicekorpral',  level:6,  bef:null, comps:['IK1','Aktiv instruktör'], minYears:null},
   {label:'Korpral',      level:7,  bef:['Stf GrpC'], comps:['GrpC 1'], minYears:null},
   {label:'Furir',        level:8,  bef:['GrpC'], comps:['GrpC 1','GrpC 2'], minYears:null},
@@ -1030,7 +1031,7 @@ function ensureCompetencyStatsFlags(list){
 function defaultData(){
   return {
     version:3,
-    title:'Personalregister',
+    title:'Plutonsregister',
     kompani:'',
     pluton:'',
     groups: DEFAULT_GROUPS.map(clone),
@@ -1082,6 +1083,19 @@ function placeCompetencyAfter(list, id, afterId){
     const newAfterIdx = list.findIndex(c=>c.id===afterId);
     list.splice(newAfterIdx+1,0,item);
   }
+}
+/* uppdatering 13 oktober 2026: FMU direkt efter GU */
+/* uppdatering 27 oktober 2026: register som körts med en äldre version
+   (uppladdningen 20 oktober) kan ha FMU på fel plats — lägg den efter GU en gång */
+function ensureFmu27(data){
+  if(data.fmu27Applied) return;
+  placeCompetencyAfter(data.competencies, 'fmu', 'gu');
+  data.fmu27Applied = true;
+}
+function ensureFmu13(data){
+  if(data.fmu13Applied) return;
+  placeCompetencyAfter(data.competencies, 'fmu', 'gu');
+  data.fmu13Applied = true;
 }
 function ensureBandvagnOrder(data){
   if(data.bandvagnOrderApplied) return;
@@ -1248,6 +1262,8 @@ function ensurePersonShape(p){
   if(p.plutcSedanAr===undefined) p.plutcSedanAr = '';
   if(p.underUtbildning===undefined) p.underUtbildning = false;
   if(p.grundutbKlar===undefined) p.grundutbKlar = false;
+  if(p.blaTyp===undefined) p.blaTyp = '';
+  normalizeGrundutb(p);
   return p;
 }
 function addYear(){
@@ -1288,6 +1304,7 @@ function sanitizeFileBase(name){
   return base || 'Register';
 }
 function hydrateData(parsed){
+  if(parsed.title==='Personalregister') parsed.title = 'Plutonsregister';
   if(!parsed.groups || !parsed.groups.length){ parsed.groups = DEFAULT_GROUPS.map(clone); }
   ensureGroups(parsed);
   ensureReserveGroup(parsed);
@@ -1303,6 +1320,8 @@ function hydrateData(parsed){
   ensureKomp2026Order(parsed);
   ensureInstruktorOrder(parsed);
   ensureCompetencyStatsFlags(parsed.competencies);
+  ensureFmu13(parsed);
+  ensureFmu27(parsed);
   if(!parsed.mal) parsed.mal = {};
   ensureNotiser(parsed);
   if(parsed.kompani===undefined) parsed.kompani = '';
@@ -1422,6 +1441,7 @@ let saveChain = Promise.resolve();
 let savePending = false;
 let saveFailedWarned = false;
 function saveToDisk(){
+  if(DATA && Array.isArray(DATA.persons)) DATA.persons.forEach(p=>normalizeGrundutb(p));
   if(!DATA || !currentFileName) return saveChain;
   if(savePending) return saveChain;
   savePending = true;
@@ -1485,7 +1505,7 @@ async function exportJson(){
      igen i appen, med samma PIN-kod */
   const payload = await encryptForStorage(JSON.stringify(DATA));
   const blob = new Blob([payload], {type:'application/json'});
-  const ok = await deliverFile(blob, sanitizeFileBase(DATA.title||currentRegisterLabel()||'personalregister') + '.json');
+  const ok = await deliverFile(blob, sanitizeFileBase(DATA.title||currentRegisterLabel()||'plutonsregister') + '.json');
   if(ok){
     try{ localStorage.setItem(LS_BACKUP_PREFIX+currentFileName, String(Date.now())); }catch(e){}
     if(view.name==='home') renderAll();
@@ -1530,7 +1550,7 @@ function personRowValues(p){
     return p[c.key];
   });
   row.push(p.underUtbildning
-    ? `Under utbildning (${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV})`
+    ? (p.blaTyp==='Specialist' ? 'Under utbildning (Specialist)' : `Under utbildning (${p.blaTyp==='FMU'?'FMU ':''}${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV})`)
     : (p.grundutbKlar ? 'Klar' : ''));
   DATA.competencies.forEach(c=>{
     const k = p.kompetenser && p.kompetenser[c.id];
@@ -1575,7 +1595,7 @@ function exportAllCsv(){
       rows.push([g.name].concat(personRowValues(p)));
     });
   });
-  downloadTextFile('personalregister-alla-grupper.csv', buildCsv(header, rows), 'text/csv;charset=utf-8');
+  downloadTextFile('plutonsregister-alla-grupper.csv', buildCsv(header, rows), 'text/csv;charset=utf-8');
 }
 function personSlackFieldsLine(p){
   const parts = FIELD_DEFS.filter(f=>f.key!=='namn' && f.key!=='befattning').map(f=>{
@@ -1591,7 +1611,7 @@ function ovningStatusText(st){
 }
 function personSlackDetailLines(p){
   const lines = [];
-  if(p.underUtbildning) lines.push(`   Under utbildning: Ja (${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV} avtalsövningar)`);
+  if(p.underUtbildning) lines.push(`   Under utbildning: Ja${p.blaTyp ? ', '+p.blaTyp : ''}${p.blaTyp==='Specialist' ? '' : ` (${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV} avtalsövningar)`}`);
   else if(p.grundutbKlar) lines.push(`   Grundutbildning: Klar`);
   lines.push(`   Avtalsår innan ${YEAR_START}: ${p.avtalsarInnanStart||0}`);
   if(p.plutcSedanAr!==undefined && p.plutcSedanAr!==''){
@@ -1814,6 +1834,7 @@ function applySlackCompetencies(p, line){
     p.kompetenser[comp.id].has = true;
     if(expiry) p.kompetenser[comp.id].utgangsdatum = expiry;
   });
+  normalizeGrundutb(p);
 }
 function applySlackAvtalOvning(p, line){
   const m = line.match(/^Avtalsövningar\s+(\d{4}):\s*(.*)$/i);
@@ -1848,7 +1869,7 @@ function applySlackYearsBefore(p, line){
   p.avtalsarInnanStart = Math.max(0, parseInt(m[1],10)||0);
 }
 function applySlackTraining(p, line){
-  if(/^Under utbildning:\s*Ja/i.test(line)){ p.underUtbildning = true; p.grundutbKlar = false; p.grad = 'Menig'; }
+  if(/^Under utbildning:\s*Ja/i.test(line)){ p.underUtbildning = true; p.grundutbKlar = false; p.grad = 'Menig'; p.blaTyp = /specialist/i.test(line) ? 'Specialist' : (/\bFMU\b/i.test(line) ? 'FMU' : ''); }
   else if(/^Under utbildning:\s*Nej/i.test(line)){ p.underUtbildning = false; }
   else if(/^Grundutbildning:\s*Klar/i.test(line)){ p.underUtbildning = false; p.grundutbKlar = true; }
 }
@@ -2648,8 +2669,50 @@ function exerciseCount(p){
   return n;
 }
 function isTrainee(p){ return !!(p && p.underUtbildning); }
+
+/* ---------- grundutbildning: GU, FMU eller GUF — bara en per person ----------
+   Ordningen anger vilken som behålls om flera råkar vara markerade
+   (t.ex. efter en import): FMU före GU före GUF. Markerar användaren en
+   ny grundutbildning tas den tidigare bort direkt. */
+const GRUNDUTB_IDS = ['fmu','gu','guf'];
+function personGrundutbId(p){
+  if(!p || !p.kompetenser) return null;
+  return GRUNDUTB_IDS.find(id=>p.kompetenser[id] && p.kompetenser[id].has) || null;
+}
+function normalizeGrundutb(p, keepId){
+  if(!p || !p.kompetenser) return;
+  const keep = keepId || personGrundutbId(p);
+  GRUNDUTB_IDS.forEach(id=>{ if(id!==keep && p.kompetenser[id] && p.kompetenser[id].has) p.kompetenser[id].has = false; });
+}
+/* blåbandare är antingen FMU (grundutbildning, 4 avtalsövningar) eller
+   Specialist (befattningsutbildning, avslutas manuellt). Tomt = ej valt. */
+function isSpecialistTrainee(p){ return isTrainee(p) && p.blaTyp==='Specialist'; }
+function traineeProgressShort(p){
+  if(isSpecialistTrainee(p)) return 'Specialist';
+  return (p.blaTyp==='FMU' ? 'FMU · ' : '') + Math.min(exerciseCount(p),GRUNDUTB_KRAV)+'/'+GRUNDUTB_KRAV+' avtalsövningar';
+}
+function askTraineeType(pid){
+  const p = DATA.persons.find(x=>x.id===pid);
+  if(!p) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal" style="max-width:440px;"><h3>Blåbandare</h3>
+    <p style="font-size:13px;margin-bottom:6px;"><strong>${esc(fullName(p))}</strong> är nu under utbildning. Välj vilken sorts blåbandare det gäller.</p>
+    <p style="font-size:12px;color:var(--ink-soft);"><strong>FMU</strong> — grundutbildning, klar efter ${GRUNDUTB_KRAV} avtalsövningar. <strong>Specialist</strong> — utbildas till en befattning och är blåbandare tills befattningsutbildningen är klar.</p>
+    <div class="modal-actions"><button class="btn" data-t="Specialist">Specialist</button><button class="btn primary" data-t="FMU">FMU</button></div></div>`;
+  overlay.querySelectorAll('[data-t]').forEach(b=>{ b.onclick = ()=>{ p.blaTyp = b.dataset.t; overlay.remove(); saveToDisk(); renderAll(); }; });
+  document.body.appendChild(overlay);
+}
+function gradeHeld(p, label){ return normLabel(p && p.grad)===normLabel(label); }
+/* nästa grad att sikta mot: lägsta högre grad som gäller personens befattning */
+function nextGradeDef(p, curLevel){
+  const higher = GRADES.filter(d=>d.level>curLevel).sort((a,b)=>a.level-b.level);
+  return higher.find(d=>!d.bef || personBefIn(p, d.bef)) || higher[0] || null;
+}
 function traineeTitle(p){
-  return `Blåbandare — under utbildning (${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV} avtalsövningar)`;
+  return isSpecialistTrainee(p)
+    ? 'Blåbandare — specialist under befattningsutbildning'
+    : `Blåbandare — under utbildning (${traineeProgressShort(p)})`;
 }
 /* Namn i fetstil — blå text för blåbandare. */
 function nameStrong(p, raw){
@@ -2661,33 +2724,46 @@ function nameStrong(p, raw){
 function gradeTest(def, p){
   if(isTrainee(p)) return def.level===1; // blåbandare kan endast ha graden Menig
   if(def.bef && !personBefIn(p, def.bef)) return false;
-  if(def.orGrundutb && p.grundutbKlar){ /* grundutbildning ersätter kompetenskravet */ }
-  else if(def.comps && !def.comps.every(c=>personHasComp(p,c))) return false;
-  if(def.compsAny && !def.compsAny.some(c=>personHasComp(p,c))) return false;
+  if(!(def.orGrundutb && p.grundutbKlar)){ /* klar blåbandare (äldre markering) ersätter kompetenskravet */
+    if(def.comps && !def.comps.every(c=>personHasComp(p,c))) return false;
+    if(def.compsAny && !def.compsAny.some(c=>personHasComp(p,c))) return false;
+  }
   if(def.minYears!=null && fulfilledContractYears(p)<def.minYears) return false;
-  if(def.minYearsInBef!=null && fulfilledContractYearsSince(p, p.plutcSedanAr)<def.minYearsInBef) return false;
+  if(def.minYearsInBef!=null && !(def.orHasGrade && gradeHeld(p, def.label))
+     && fulfilledContractYearsSince(p, p[def.sinceKey||'plutcSedanAr'])<def.minYearsInBef) return false;
   return true;
 }
 function currentGrade(p){
   let best = null;
-  GRADES.forEach(def=>{ if(gradeTest(def,p)) best = def; });
+  GRADES.forEach(def=>{ if(gradeTest(def,p) && (!best || def.level>=best.level)) best = def; });
   return best;
 }
 function missingForGrade(def, p){
   const missing = [];
   if(isTrainee(p)){
+    if(isSpecialistTrainee(p)){ missing.push('Specialist under befattningsutbildning'); return missing; }
     const n = exerciseCount(p);
     if(n<GRUNDUTB_KRAV) missing.push('Grundutbildning: '+n+'/'+GRUNDUTB_KRAV+' avtalsövningar');
     else missing.push('Grundutbildning klar — notera notisen på startsidan');
     return missing;
   }
   if(def.bef && !personBefIn(p, def.bef)) missing.push('Befattning: '+def.bef.join(' eller '));
-  if(def.orGrundutb && p.grundutbKlar){ /* kravet uppfyllt via grundutbildning */ }
-  else if(def.comps) def.comps.forEach(c=>{ if(!personHasComp(p,c)) missing.push('Kompetens: '+c); });
-  if(def.compsAny && !def.compsAny.some(c=>personHasComp(p,c))) missing.push('Kompetens: '+def.compsAny.join(' eller '));
+  if(!(def.orGrundutb && p.grundutbKlar)){
+    if(def.comps) def.comps.forEach(c=>{ if(!personHasComp(p,c)) missing.push('Kompetens: '+c); });
+    if(def.compsAny && !def.compsAny.some(c=>personHasComp(p,c))) missing.push('Kompetens: '+def.compsAny.join(' eller '));
+  }
   if(def.minYears!=null){
     const have = fulfilledContractYears(p);
     if(have<def.minYears) missing.push('Uppfyllda avtalsår: '+have+'/'+def.minYears);
+  }
+  if(def.minYearsInBef!=null && !(def.orHasGrade && gradeHeld(p, def.label))){
+    const key = def.sinceKey||'plutcSedanAr';
+    const have = fulfilledContractYearsSince(p, p[key]);
+    if(have<def.minYearsInBef){
+      missing.push((p[key]===''||p[key]==null)
+        ? 'Ange "'+(def.sinceLabel||'Stf PlutC/PlutC')+' sedan år" under Avtalsövningar'
+        : 'Uppfyllda avtalsår i befattningen: '+have+'/'+def.minYearsInBef);
+    }
   }
   return missing;
 }
@@ -2725,12 +2801,21 @@ function computeNotices(){
         });
       });
     });
-    if(isTrainee(p) && exerciseCount(p)>=GRUNDUTB_KRAV){
+    if(isTrainee(p) && !isSpecialistTrainee(p) && exerciseCount(p)>=GRUNDUTB_KRAV){
       notices.push({
         kind:'training', gid:p.groupId, pid:p.id, groupName:gName, personName:fullName(p),
-        text:`Har genomfört ${GRUNDUTB_KRAV} avtalsövningar (SÖF/KFÖ) och är nu klar med sin grundutbildning`,
+        text:`Har genomfört ${GRUNDUTB_KRAV} avtalsövningar (SÖF/KFÖ) och är nu klar med sin grundutbildning${p.blaTyp==='FMU' ? ' (FMU). När du noterar får personen kompetensen FMU' : ''}`,
         sortKey:-200000,
         ackCall:`ackTrainingNotice('${p.id}')`
+      });
+    }
+    /* saknad grundutbildning: kan inte kvitteras, försvinner när GU, FMU eller GUF fylls i.
+       Gäller inte blåbandare, Ny personal eller Avveckling. */
+    if(!isTrainee(p) && !personGrundutbId(p) && !['recruit','offboarding'].includes(groupKind(p.groupId))){
+      notices.push({
+        kind:'grundutb', gid:p.groupId, pid:p.id, groupName:gName, personName:fullName(p),
+        text:'Saknar grundutbildning. Fyll i GU, FMU eller GUF under Kompetenser — notisen försvinner då.',
+        sortKey:-95000, ackCall:'', showCall:`goPerson('${p.id}')`, notifyKey:'gu|'+p.id
       });
     }
     const cg = currentGrade(p);
@@ -2782,6 +2867,11 @@ function ackTrainingNotice(pid){
   if(!p) return;
   p.underUtbildning = false;
   p.grundutbKlar = true;
+  if(p.blaTyp==='FMU'){
+    if(!p.kompetenser.fmu) p.kompetenser.fmu = {has:false, utgangsdatum:''};
+    p.kompetenser.fmu.has = true;
+    normalizeGrundutb(p, 'fmu');
+  }
   saveToDisk(); renderAll();
 }
 function ackMoveNotice(nid){
@@ -2814,7 +2904,7 @@ function renderNoticeList(notices){
   return notices.map(n=>`<div class="noticeItem ${n.kind} lvl-${n.level||'orange'}">
     <div class="noticeGroup">${esc(n.groupName)}</div>
     <div class="noticeText">${n.personName ? `<strong>${esc(n.personName)}</strong> – ` : ''}${esc(n.text)}</div>
-    <button class="btn tiny" onclick="${n.ackCall}">${esc(n.ackLabel||'Noterat')}</button>${n.showCall ? ` <button class="btn tiny" onclick="${n.showCall}">Visa</button>` : ''}${n.undoCall ? ` <button class="btn tiny" onclick="${n.undoCall}">Ångra flytt</button>` : ''}
+    ${n.ackCall ? `<button class="btn tiny" onclick="${n.ackCall}">${esc(n.ackLabel||'Noterat')}</button>` : ''}${n.showCall ? ` <button class="btn tiny" onclick="${n.showCall}">Visa</button>` : ''}${n.undoCall ? ` <button class="btn tiny" onclick="${n.undoCall}">Ångra flytt</button>` : ''}
   </div>`).join('');
 }
 
@@ -2863,11 +2953,11 @@ function reserveBanner(){
 /* ---------- top bar ---------- */
 function renderTopbar(){
   const titleEl = document.getElementById('titleEl');
-  titleEl.textContent = DATA ? DATA.title : 'Personalregister';
+  titleEl.textContent = DATA ? DATA.title : 'Plutonsregister';
   titleEl.contentEditable = !!DATA;
   titleEl.onblur = ()=>{
     if(!DATA) return;
-    const val = titleEl.textContent.trim() || 'Personalregister';
+    const val = titleEl.textContent.trim() || 'Plutonsregister';
     DATA.title = val; titleEl.textContent = val; saveToDisk();
   };
   titleEl.onkeydown = (e)=>{ if(e.key==='Enter'){ e.preventDefault(); titleEl.blur(); } };
@@ -3365,6 +3455,7 @@ function setRecruitStep(pid, val){
   /* steget "Under utbildning" gör personen till blåbandare */
   if(val==='utbildning' && !p.grundutbKlar){ p.underUtbildning = true; p.grad = 'Menig'; }
   saveToDisk(); renderAll();
+  if(val==='utbildning' && p.underUtbildning && !p.blaTyp) askTraineeType(p.id);
 }
 function setRecruitDate(pid, stepKey, val){
   const p = DATA.persons.find(x=>x.id===pid);
@@ -3525,7 +3616,11 @@ function openPersonForm(gid, pid, slotIndex){
         <input type="checkbox" id="pf_underUtbildning" style="width:16px;height:16px;margin:0;accent-color:#1F5FBF;" ${p.underUtbildning?'checked':''} onchange="onTraineeToggle(this.checked)">
         <span style="font-weight:600;color:#1F5FBF;cursor:pointer;" onclick="const c=document.getElementById('pf_underUtbildning');c.checked=!c.checked;onTraineeToggle(c.checked);">Under utbildning (blåbandare)</span>
       </div>
-      <div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Blåbandare kan endast ha graden Menig och visas med blå text i personallistan. Efter ${GRUNDUTB_KRAV} genomförda avtalsövningar (SÖF/KFÖ) visas en notis om att grundutbildningen är klar.${existing && p.underUtbildning ? ` Genomförda hittills: <strong>${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV}</strong>.` : ''}${p.grundutbKlar ? ' <strong>Grundutbildning klar.</strong>' : ''}</div>
+      <div id="pf_blaTypWrap" style="display:${p.underUtbildning?'flex':'none'};gap:16px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:13px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="pf_blaTyp" value="FMU" ${p.blaTyp==='FMU'?'checked':''} style="margin:0;accent-color:#1F5FBF;"> FMU</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="pf_blaTyp" value="Specialist" ${p.blaTyp==='Specialist'?'checked':''} style="margin:0;accent-color:#1F5FBF;"> Specialist</label>
+      </div>
+      <div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Blåbandare kan endast ha graden Menig och visas med blå text i personallistan. <strong>FMU</strong>: efter ${GRUNDUTB_KRAV} genomförda avtalsövningar (SÖF/KFÖ) visas en notis, och när du noterar den får personen FMU. <strong>Specialist</strong>: utbildas till en befattning; ta bort krysset när befattningsutbildningen är klar.${existing && p.underUtbildning && p.blaTyp!=='Specialist' ? ` Genomförda hittills: <strong>${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV}</strong>.` : ''}${p.grundutbKlar ? ' <strong>Grundutbildning klar.</strong>' : ''}</div>
     </div>`;
 
   const overlay = document.createElement('div');
@@ -3548,12 +3643,20 @@ function closeModal(){
 }
 /* låser gradfältet till "Menig" medan rutan "Under utbildning" är ikryssad */
 function onTraineeToggle(checked){
+  const tw = document.getElementById('pf_blaTypWrap');
+  if(tw) tw.style.display = checked ? 'flex' : 'none';
   const gradEl = document.getElementById('pf_grad');
   if(!gradEl) return;
   if(checked){ gradEl.dataset.prev = gradEl.value; gradEl.value = 'Menig'; gradEl.disabled = true; }
   else { gradEl.disabled = false; if(gradEl.dataset.prev!==undefined) gradEl.value = gradEl.dataset.prev; }
 }
 function savePersonForm(existingId, gid, slotIndex){
+  const tEl = document.getElementById('pf_underUtbildning');
+  const typEl = document.querySelector('input[name="pf_blaTyp"]:checked');
+  if(tEl && tEl.checked && !typEl){
+    const prev = existingId ? DATA.persons.find(x=>x.id===existingId) : null;
+    if(!(prev && prev.underUtbildning)){ alert('Välj om blåbandaren är FMU eller Specialist.'); return; }
+  }
   let p = existingId ? DATA.persons.find(x=>x.id===existingId) : emptyPerson(gid);
   if(!existingId){
     if(slotIndex!==null && slotIndex!==undefined) p.slotIndex = slotIndex;
@@ -3567,6 +3670,8 @@ function savePersonForm(existingId, gid, slotIndex){
   if(trainEl){
     const wasTrainee = !!p.underUtbildning;
     p.underUtbildning = trainEl.checked;
+    const typSel = document.querySelector('input[name="pf_blaTyp"]:checked');
+    if(p.underUtbildning && typSel) p.blaTyp = typSel.value;
     if(p.underUtbildning){
       p.grad = 'Menig';
       if(!wasTrainee) p.grundutbKlar = false;
@@ -3951,7 +4056,7 @@ function renderPerson(pid, tab){
   else if(tab==='plan' && !isRecruit) body = renderPlan(p);
   else body = renderKompetenser(p);
   const traineeTag = isTrainee(p)
-    ? `<span class="traineeTag">Blåbandare · ${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV} avtalsövningar</span>`
+    ? `<span class="traineeTag">Blåbandare · ${traineeProgressShort(p)}</span>`
     : '';
 
   return `
@@ -4023,6 +4128,7 @@ function toggleCompetency(pid, key, checked){
   const p = DATA.persons.find(x=>x.id===pid);
   if(!p.kompetenser[key]) p.kompetenser[key]={has:false,utgangsdatum:''};
   p.kompetenser[key].has = checked;
+  if(checked && GRUNDUTB_IDS.includes(key)) normalizeGrundutb(p, key);
   saveToDisk(); renderAll();
 }
 function setCompetencyExpiry(pid, key, val){
@@ -4078,7 +4184,9 @@ function renderOvningar(p){
     return `<tr class="${yearOk?'yearOk':''}"><td class="year">${y}</td>${cells}</tr>`;
   }).join('');
   const done = exerciseCount(p);
-  const traineePanel = isTrainee(p)
+  const traineePanel = isSpecialistTrainee(p)
+    ? `<div class="panel" style="margin-bottom:14px;border-left:4px solid #1F5FBF;"><div style="font-weight:600;color:#1F5FBF;margin-bottom:6px;">Specialist under befattningsutbildning (blåbandare)</div><div style="font-size:13px;">Avtalsövningarna räknas inte mot någon grundutbildning. Ta bort krysset Under utbildning i Redigera uppgifter när befattningsutbildningen är klar.</div></div>`
+    : isTrainee(p)
     ? `<div class="panel" style="margin-bottom:14px;border-left:4px solid #1F5FBF;">
         <div style="font-weight:600;color:#1F5FBF;margin-bottom:6px;">Grundutbildning (blåbandare)</div>
         <div style="font-size:13px;">Genomförda avtalsövningar: <strong>${Math.min(done,GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV}</strong> (varje SÖF och KFÖ med Närvarande räknas).</div>
@@ -4228,7 +4336,7 @@ function renderGradOverview(){
   const rows = people.map(p=>{
     const cur = currentGrade(p);
     const curLevel = cur ? cur.level : 0;
-    const nextDef = GRADES.find(d=>d.level===curLevel+1);
+    const nextDef = nextGradeDef(p, curLevel);
     let nextCell, missingCell;
     if(nextDef){
       const missing = missingForGrade(nextDef, p);
@@ -4811,7 +4919,7 @@ async function runShareExport(){
   if(document.getElementById('shareRemember').checked) await setRememberedShareCode(c1);
   else await setRememberedShareCode('');
   const lines = blob.match(/.{1,76}/g).join('\n');
-  const text = `🔒 Personalregister – krypterad export (${shareExportState.title}). Läs in i appen med delningskoden.\n\`\`\`\n${lines}\n\`\`\``;
+  const text = `🔒 Plutonsregister – krypterad export (${shareExportState.title}). Läs in i appen med delningskoden.\n\`\`\`\n${lines}\n\`\`\``;
   shareExportState.text = text;
   const tooLong = text.length > SLACK_SAFE_LEN;
   const modal = document.querySelector('.overlay .modal');
@@ -4823,7 +4931,7 @@ async function runShareExport(){
     <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;">
       <button class="btn primary" onclick="copyShareText(this)">Kopiera</button>
       ${navigator.share ? `<button class="btn" onclick="navigator.share({text: shareExportState.text}).catch(()=>{})">Dela…</button>` : ''}
-      <button class="btn" onclick="deliverFile(new Blob([shareExportState.text],{type:'text/plain;charset=utf-8'}), 'personalregister-'+slugify(shareExportState.title)+'.txt')">Spara som fil</button>
+      <button class="btn" onclick="deliverFile(new Blob([shareExportState.text],{type:'text/plain;charset=utf-8'}), 'plutonsregister-'+slugify(shareExportState.title)+'.txt')">Spara som fil</button>
     </div>
     <div class="modal-actions"><button class="btn" onclick="closeModal()">Stäng</button></div>`;
 }
@@ -4873,7 +4981,7 @@ function askPinModal(text){
    appen är öppen/öppnas. Siffran på appikonen sätts varje gång appen körs.
    ========================================================================= */
 const LSP = LS_REGISTRY.replace(/_registry$/,'');
-const APP_TITLE = (LSP==='gruppregister') ? 'Gruppregister' : 'Personalregister';
+const APP_TITLE = (LSP==='gruppregister') ? 'Gruppregister' : 'Plutonsregister';
 function lsGet(k, def){
   try{ const v = localStorage.getItem(LSP+'_'+k); return v==null ? def : JSON.parse(v); }catch(e){ return def; }
 }
@@ -5737,6 +5845,18 @@ function splitExtras(text){
   return out;
 }
 async function routeImport(text, personsFn){
+  /* kompaniets chefsrader (PlutC/Stf PlutC/Tropp C) ligger sist i texten och läses in för sig */
+  const kc = splitKompChef(text);
+  if(kc.chef){
+    text = kc.rest;
+    const hasPersons = /^\s*•/m.test(text);
+    if(hasPersons) await routeImportInner(text, personsFn); else { const ex0 = splitExtras(text); closeModal(); if(ex0.cal||ex0.notes) await offerExtras(ex0); }
+    applyKompChef(kc.chef);
+    return;
+  }
+  return routeImportInner(text, personsFn);
+}
+async function routeImportInner(text, personsFn){
   const ex = splitExtras(text);
   if(!ex.cal && !ex.notes){
     if(ex.bad) alert('En del av texten (kalender/anslagstavla) kunde inte läsas och hoppades över.');
@@ -6333,7 +6453,7 @@ function releaseSections(p){
   const ov = [];
   ov.push(['Avtalsår uppfyllda innan '+YEAR_START, String(p.avtalsarInnanStart||0)]);
   if(p.plutcSedanAr) ov.push(['Stf PlutC/PlutC sedan år', String(p.plutcSedanAr)]);
-  if(p.underUtbildning) ov.push(['Grundutbildning', 'Under utbildning (blåbandare)']);
+  if(p.underUtbildning) ov.push(['Grundutbildning', 'Under utbildning (blåbandare'+(p.blaTyp ? ', '+p.blaTyp : '')+')']);
   else if(p.grundutbKlar) ov.push(['Grundutbildning', 'Klar']);
   YEARS.forEach(y=>{
     const o = p.ovningar[y] || {};
@@ -6370,14 +6490,14 @@ function buildReleasePdf(p, masked){
   const BAR = (x, yy, w, h)=>rect(x, yy, w, h, 0);
   const g = getGroup(p.groupId) || {name:''};
   const nameMasked = masked.has('f:namn');
-  const app = document.title || 'Personalregister';
+  const app = document.title || 'Plutonsregister';
   const regName = (DATA.title || currentRegisterLabel() || '');
   const now = new Date();
   const stamp = now.toLocaleDateString('sv-SE') + ' ' + now.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'});
   const S = releaseSections(p);
 
   /* rubrik */
-  text('Utdrag ur personalregister', M, y+16, 'B', 18, 0.1); y += 26;
+  text('Utdrag ur plutonsregister', M, y+16, 'B', 18, 0.1); y += 26;
   rule(y, 0.6); y += 14;
   const meta = [['Register', regName + ' (' + app + ')'], ['Förband', ((DATA.kompani||'')+' '+(DATA.pluton||'')).trim() || '—'], ['Utdraget skapat', stamp]];
   meta.forEach(([k,v])=>{ text(k, M, y+9, 'B', 9.5, 0.35); pdfWrap(v,'R',9.5,CW-110).forEach((ln,i)=>{ text(ln, M+110, y+9+i*12.5, 'R', 9.5, 0); }); y += 13 + (pdfWrap(v,'R',9.5,CW-110).length-1)*12.5; });
@@ -6433,7 +6553,7 @@ function buildReleasePdf(p, masked){
   objs[2] = `<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`;
   objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
   objs[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
-  const ttl = nameMasked ? 'Utdrag ur personalregister' : 'Utdrag ' + fullName(p);
+  const ttl = nameMasked ? 'Utdrag ur plutonsregister' : 'Utdrag ' + fullName(p);
   const hex = Array.from(ttl).map(ch=>ch.charCodeAt(0).toString(16).padStart(4,'0')).join('');
   objs[5] = `<< /Title <FEFF${hex}> /Producer (${pdfEsc(app)}) >>`;
   pages.forEach((ops,i)=>{
@@ -6525,6 +6645,21 @@ init();
    höj VERSION i sw.js). Efter upplåsning visas det som är nytt sedan
    användaren senast öppnade appen. Ny installation visar ingen notis. */
 const APP_CHANGELOG = [
+  {version:'2026-10-27', title:'Kompaniets chefsrader', items:[
+    'Kompaniet styr raderna PlutC och Stf PlutC. När du läser in en text från kompaniet sätts de raderna exakt som kompaniet har dem, även om en rad blir tom.',
+    'Den som lämnar en chefsrad står utan fast plats i gruppen tills du väljer rad eller flyttar personen.',
+    'Namnet Plutonsregister, FMU och reglerna för grundutbildning från 13 oktober finns med igen efter ett fel vid förra uppladdningen.'
+  ]},
+  {version:'2026-10-13.2', title:'Nytt namn: Plutonsregister', items:[
+    'Appen heter nu Plutonsregister. Allt annat fungerar som förut: dina register, PIN-kod, delningskod, säkerhetskopior och export/import mellan apparna påverkas inte, och adressen är densamma.',
+    'På iPhone behåller en redan installerad app sitt gamla namn under ikonen. Vill du se det nya namnet tar du bort appen från hemskärmen och lägger till den igen — registren finns kvar.'
+  ]},
+  {version:'2026-10-13', title:'FMU och grundutbildning', items:[
+    'Ny kompetens FMU mellan GU och GUF. FMU är en grundutbildning och räknas som GU i alla gradkrav.',
+    'En person kan bara ha en grundutbildning (GU, FMU eller GUF). Markerar du en ny tas den tidigare bort. Har någon flera sedan tidigare behålls FMU före GU före GUF.',
+    'Blåbandare väljs som FMU eller Specialist. FMU: efter 4 avtalsövningar kommer notisen, och när du noterar den får personen FMU och blåmarkeringen tas bort. Specialist: avtalsövningarna räknas inte, och du tar bort blåmarkeringen själv när befattningsutbildningen är klar. Befintliga blåbandare väljer du typ för i Redigera uppgifter.',
+    'Notis för personal som saknar grundutbildning. Den kan inte kvitteras utan försvinner när GU, FMU eller GUF fylls i. Gäller inte blåbandare, Ny personal och Avveckling.'
+  ]},
   {version:'2026-10-12', title:'Justering 12 oktober 2026', items:[
     'Ny kompetens: Instruktör, placerad mellan Sjukvård och Aktiv instruktör.',
     'Nya plutonsregister får gruppnamnen Chefsgrupp och Grupp 1–4. Befintliga register behåller sina namn, och du kan själv döpa om dem.'
@@ -6579,7 +6714,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v31';
+const SW_CACHE_VERSION = 'personalregister-v34';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
@@ -6650,6 +6785,75 @@ if('serviceWorker' in navigator && /^https?:/.test(location.protocol)){
 }
 if(navigator.storage && navigator.storage.persist){
   navigator.storage.persist().catch(()=>{});
+}
+
+/* ---------- chefsrader från kompaniet (27 oktober 2026) ----------
+   Kompaniet äger raderna PlutC och Stf PlutC (i troppen: Tropp C). Kompaniets
+   export avslutas med rubriken "*Kompaniets chefsrader: <app> g1 rad 1, 2*"
+   och personerna på de raderna. Raderna sätts exakt enligt kompaniet:
+   en rad utan person i texten blir tom. Den som lämnar en chefsrad blir
+   "utan fast plats" i gruppen, så att chefen själv väljer vart personen ska. */
+const KOMP_CHEF_RE = /^\s*\*Kompaniets chefsrader:\s*(\S+)\s+(\S+)\s+rad\s+([\d,\s]+?)\s*\*\s*$/im;
+function splitKompChef(text){
+  const t = String(text||'');
+  const m = t.match(KOMP_CHEF_RE);
+  if(!m) return {rest:t, chef:null};
+  const tail = t.slice(m.index + m[0].length);
+  const keep = tail.split('\n').filter(l=>/^\s*#PR-/.test(l)).join('\n');
+  return {
+    rest: t.slice(0, m.index) + (keep ? '\n\n'+keep : ''),
+    chef: {app:m[1].toLowerCase(), gid:m[2], rows:m[3].split(/[,\s]+/).filter(Boolean).map(n=>parseInt(n,10)-1).filter(n=>!isNaN(n)),
+           text: tail.split('\n').filter(l=>!/^\s*#PR-/.test(l)).join('\n')}
+  };
+}
+function applyKompChef(c){
+  if(c.app!==APP_KEY){ alert('Texten innehåller chefsrader för ett '+(c.app==='tropp'?'troppregister':'plutonsregister')+'. De lästes inte in här.'); return; }
+  const g = getGroup(c.gid);
+  if(!g || g.kind!=='standard'){ alert('Chefsraderna från kompaniet kunde inte läsas in — gruppen finns inte i registret.'); return; }
+  const norm = s=>String(s||'').trim().toLowerCase();
+  const nAnr = s=>String(s||'').replace(/\s+/g,'').toLowerCase();
+  const anrOf = b=>{
+    for(const line of b.lines){
+      const pair = slackFieldPairs(line).find(([l])=>l.toLowerCase()==='anställningsnummer');
+      if(pair) return nAnr(pair[1]);
+    }
+    return '';
+  };
+  const byRow = new Map();
+  parseSlackBlocks(c.text).filter(b=>b.lines.length).forEach(b=>{
+    const pl = slackBlockPlats(b);
+    if(pl && pl.app===APP_KEY && pl.gid===c.gid && pl.row!=null && c.rows.includes(pl.row)) byRow.set(pl.row, b);
+  });
+  const placed = [], left = [], added = [];
+  const leftIds = new Set();
+  c.rows.forEach(r=>{
+    if(r<0 || r>=g.slots.length) return;
+    const bef = g.slots[r].befattning || ('rad '+(r+1));
+    const occ = DATA.persons.find(x=>x.groupId===g.id && x.slotIndex===r);
+    const b = byRow.get(r);
+    if(!b){
+      if(occ){ occ.slotIndex = null; leftIds.add(occ.id); left.push(fullName(occ)+' (lämnar '+bef+')'); }
+      return;
+    }
+    const name = extractSlackName(b.header), anr = anrOf(b);
+    let p = (anr && DATA.persons.find(x=>nAnr(x.anstallningsnummer)===anr)) || DATA.persons.find(x=>norm(fullName(x))===norm(name)) || null;
+    const isNew = !p;
+    if(isNew){ p = emptyPerson(g.id); p.namn = name; p.sortIndex = nextSortIndex(); DATA.persons.push(p); added.push(name); }
+    if(occ && occ!==p){ occ.slotIndex = null; leftIds.add(occ.id); left.push(fullName(occ)+' (lämnar '+bef+')'); }
+    p.groupId = g.id; p.slotIndex = r;
+    leftIds.delete(p.id);
+    applySlackLines(p, g, b.lines, true);
+    placed.push(fullName(p)+' → '+bef);
+  });
+  DATA.persons.forEach(p=>{ if(leftIds.has(p.id) && p.slotIndex!=null) leftIds.delete(p.id); });
+  saveToDisk(); renderAll();
+  const L = ['Chefsraderna från kompaniet är inlästa.'];
+  if(placed.length) L.push('\nPå raderna:\n  '+placed.join('\n  '));
+  if(added.length) L.push('\nNya i registret: '+added.join(', '));
+  const out = DATA.persons.filter(p=>leftIds.has(p.id));
+  if(out.length) L.push('\nStår nu utan fast plats i '+g.name+' — välj rad eller flytta personen:\n  '+out.map(p=>fullName(p)).join('\n  '));
+  if(!placed.length && !out.length) L.push('\nInga ändringar på raderna.');
+  alert(L.join('\n'));
 }
 </script>
 </body>
