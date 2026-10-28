@@ -6834,9 +6834,9 @@ function renderSetup(){
 }
 
 
-/* ---------- BEHORIGHET_V4: nyckel som kontrolleras mot listan i repot Behorigheter ---------- */
-const AUTH_URL = 'https://raw.githubusercontent.com/Ryberg-hv/Behorigheter/main/nycklar.json';
-const AUTH_API = 'https://api.github.com/repos/Ryberg-hv/Behorigheter/contents/nycklar.json';
+/* ---------- BEHORIGHET_V4: nyckel som kontrolleras mot listan i repot Behorighet ---------- */
+const AUTH_URL = 'https://raw.githubusercontent.com/Ryberg-hv/Behorighet/main/nycklar.json';
+const AUTH_API = 'https://api.github.com/repos/Ryberg-hv/Behorighet/contents/nycklar.json';
 const AUTH_ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const AUTH_GRACE_DAYS = 14, AUTH_WARN_DAYS = 11, AUTH_MAX_REVOKE = 5;
 const AUTH_NAME = {grupp:'gruppregister', pluton:'personalregister', tropp:'troppregister', kompani:'kompaniregister'}[APP_KEY];
@@ -7047,7 +7047,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v34';
+const SW_CACHE_VERSION = 'personalregister-v35';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
