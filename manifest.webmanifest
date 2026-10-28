@@ -1,7 +1,7 @@
 {
-  "name": "Plutonsregister",
-  "short_name": "Plutonsregister",
-  "description": "Personalregister för plutonen",
+  "name": "Personalregister",
+  "short_name": "Personalregister",
+  "description": "Personalregister för pluton och grupp",
   "lang": "sv",
   "start_url": "./",
   "scope": "./",
