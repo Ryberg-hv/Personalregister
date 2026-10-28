@@ -4584,6 +4584,7 @@ function pinPress(d){
 }
 document.addEventListener('keydown', e=>{
   if(!lockMode) return;
+  { const t=e.target; if(t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)) return; }
   if(/^[0-9]$/.test(e.key)){ e.preventDefault(); pinPress(e.key); }
   else if(e.key==='Backspace'){ e.preventDefault(); pinBack(); }
 });
@@ -6925,13 +6926,15 @@ async function authRetry(){
 }
 function authShowActivate(){
   authGate('<h2 style="margin:0 0 6px;">Ange din nyckel</h2><p style="font-size:13px;color:#454B4F;margin:0 0 12px;">Appen kräver en behörighetsnyckel från kompaniet. Aktiveringen kräver uppkoppling. Nyckeln behöver bara anges en gång.</p>'
-    +'<input id="authKeyIn" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" style="width:100%;box-sizing:border-box;padding:10px;font-size:16px;letter-spacing:1px;border:1px solid #888;border-radius:8px;">'
+    +'<input id="authKeyIn" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" style="width:100%;box-sizing:border-box;padding:10px;font-size:16px;letter-spacing:1px;border:1px solid #888;border-radius:8px;">'
     +'<div id="authMsg" style="min-height:18px;font-size:13px;color:#8C3B32;margin:8px 0;"></div>'
+    +'<button class="btn" style="margin-top:8px;" onclick="authPaste()">Klistra in från urklipp</button>'
     +'<button class="btn primary" id="authGoBtn" onclick="authActivate()">Aktivera</button>'
     +(APP_KEY==='kompani' ? '<div id="authBoot"></div>' : ''), 'activate');
   if(typeof authBootOwnerUi==='function') authBootOwnerUi();
   setTimeout(()=>{ const i = document.getElementById('authKeyIn'); if(i) i.focus(); }, 50);
 }
+async function authPaste(){ try{ const t=await navigator.clipboard.readText(); document.getElementById('authKeyIn').value=t; }catch(e){ const m=document.getElementById('authMsg'); if(m) m.textContent='Kunde inte läsa urklipp. Håll i fältet och välj Klistra in.'; } }
 async function authActivate(){
   const inp = document.getElementById('authKeyIn'), m = document.getElementById('authMsg'), btn = document.getElementById('authGoBtn');
   const key = authNorm(inp.value);
@@ -7047,7 +7050,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v35';
+const SW_CACHE_VERSION = 'personalregister-v37';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
