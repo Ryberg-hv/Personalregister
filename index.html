@@ -1737,8 +1737,8 @@ function openSlackImportModal(gid){
     <p style="color:var(--ink-soft);font-size:13px;margin-bottom:10px;">Klistra in texten från "Exportera → Krypterad text" (krypterad text låses upp med delningskoden), eller välj den som .txt-fil. Personer matchas mot befintlig personal i gruppen via namn och uppdateras. Namn som inte hittas i gruppen tolkas som ny personal och skrivs in på en ledig (tom) plats i gruppen — eller läggs till som en ny rad om gruppen är en fri lista.</p>
     <p style="color:var(--ink-faint);font-size:11px;margin-bottom:14px;">Avtalsövningar (SÖF/KFÖ) och utvecklingsplan skrivs år för år och uppdaterar bara de år som faktiskt står med i texten — år utan rad rörs inte alls. Kompetenser-raden ersätter hela personens kompetenslista, men om raden helt saknas i texten lämnas kompetenserna orörda.</p>
     <div class="field full">
-      <input type="file" accept=".txt,text/plain" style="margin-bottom:8px;" onchange="(f=>{ if(!f) return; const r=new FileReader(); r.onload=()=>{ document.getElementById('slackImportText').value=r.result; }; r.readAsText(f,'UTF-8'); })(this.files[0])">
-      <textarea id="slackImportText" rows="14" style="width:100%;font-family:monospace;font-size:12px;border:1px solid var(--line-strong);border-radius:var(--radius);padding:8px;box-sizing:border-box;" placeholder="Klistra in texten här…"></textarea>
+      <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Välj fil (.txt) från Slack eller enheten</label><input type="file" accept=".txt,text/plain" style="margin-bottom:8px;" onchange="(f=>{ if(!f) return; const r=new FileReader(); r.onload=()=>{ document.getElementById('slackImportText').value=r.result; }; r.readAsText(f,'UTF-8'); })(this.files[0])">
+      <textarea id="slackImportText" rows="14" style="width:100%;font-family:monospace;font-size:12px;border:1px solid var(--line-strong);border-radius:var(--radius);padding:8px;box-sizing:border-box;" placeholder="Välj fil ovan eller klistra in texten här…"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Avbryt</button>
@@ -3921,7 +3921,7 @@ function openImportModal(){
       </div>
       <div class="field full" id="impHelp"></div>
       <div class="field full">
-        <label>Ladda upp fil (valfritt)</label>
+        <label>Välj fil (.txt, .csv)</label>
         <input type="file" id="impFile" accept=".csv,.tsv,.txt" onchange="handleImportFile(this)">
       </div>
       <div class="field full">
@@ -4975,19 +4975,26 @@ async function runShareExport(){
   const lines = blob.match(/.{1,76}/g).join('\n');
   const text = `🔒 Personalregister – krypterad export (${shareExportState.title})${authIdSuffix()}. Läs in i appen med delningskoden.\n\`\`\`\n${lines}\n\`\`\``;
   shareExportState.text = text;
-  const tooLong = text.length > SLACK_SAFE_LEN;
+  const tooLong = false;
   const modal = document.querySelector('.overlay .modal');
   modal.innerHTML = `
     <h3>Klart att skicka</h3>
-    <p style="color:var(--ink-soft);font-size:13px;margin-bottom:10px;">Texten är krypterad (${text.length.toLocaleString('sv-SE')} tecken). Klistra in den i Slack; ${shareExportState.kind==='tavla' ? 'mottagaren väljer <strong>Importera lappar</strong> på anslagstavlan och anger delningskoden. Lapparna sätts upp eller uppdateras — inget tas bort.</p>' : shareExportState.kind==='kalender' ? 'mottagaren väljer <strong>Importera händelser</strong> i kalendern och anger delningskoden. Händelserna läggs till eller uppdateras — inget tas bort.</p>' : `mottagaren väljer <strong>Importera från Slack</strong> i gruppen eller <strong>Importera personal → Hela plutonen</strong> och anger delningskoden.</p>`}
+    <p style="color:var(--ink-soft);font-size:13px;margin-bottom:10px;">Texten är krypterad (${text.length.toLocaleString('sv-SE')} tecken). Skicka filen i Slack som bilaga; ${shareExportState.kind==='tavla' ? 'mottagaren hämtar filen, väljer <strong>Importera lappar</strong> på anslagstavlan och anger delningskoden. Lapparna sätts upp eller uppdateras — inget tas bort.</p>' : shareExportState.kind==='kalender' ? 'mottagaren hämtar filen, väljer <strong>Importera händelser</strong> i kalendern och anger delningskoden. Händelserna läggs till eller uppdateras — inget tas bort.</p>' : `mottagaren hämtar filen, väljer <strong>Importera från Slack</strong> i gruppen eller <strong>Importera personal → Hela plutonen</strong> och anger delningskoden.</p>`}
     ${tooLong ? `<div class="banner" style="margin-bottom:10px;">Texten är lång och kan bli för lång för ett Slack-meddelande. Använd <strong>Spara som fil</strong> och skicka filen i Slack i stället — mottagaren kan välja filen i importdialogen.</div>` : ''}
     <textarea readonly style="width:100%;height:140px;font-family:var(--font-mono);font-size:11px;border:1px solid var(--line-strong);border-radius:var(--radius);padding:8px;">${esc(text)}</textarea>
     <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;">
-      <button class="btn primary" onclick="copyShareText(this)">Kopiera</button>
-      ${navigator.share ? `<button class="btn" onclick="navigator.share({text: shareExportState.text}).catch(()=>{})">Dela…</button>` : ''}
-      <button class="btn" onclick="markUpExport();deliverFile(new Blob([shareExportState.text],{type:'text/plain;charset=utf-8'}), 'personalregister-'+slugify(shareExportState.title)+'.txt')">Spara som fil</button>
+      <button class="btn primary" onclick="markUpExport();deliverFile(new Blob([shareExportState.text],{type:'text/plain;charset=utf-8'}), exportFileName())">Skicka som fil</button>
+      <button class="btn" onclick="copyShareText(this)">Kopiera text</button>
     </div>
+    <p style="color:var(--ink-soft);font-size:12px;margin-top:8px;">Filen innehåller den krypterade texten. I importrutan trycker mottagaren på <strong>Välj fil</strong> och väljer den. Slack tillåter inte längre långa meddelanden eller kopiering, så skicka filen som bilaga.</p>
     <div class="modal-actions"><button class="btn" onclick="closeModal()">Stäng</button></div>`;
+}
+function exportFileName(){
+  /* EXPFIL_V7 */
+  const d = new Date(); const ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const unit = ({grupp:'Grupp', pluton:'Pluton'+(DATA&&DATA.pluton?' '+DATA.pluton:''), tropp:'Tropp', kompani:'Kompani'+(DATA&&DATA.kompani?' '+DATA.kompani:'')})[APP_KEY] || 'Register';
+  const t = shareExportState && shareExportState.title ? shareExportState.title : '';
+  return slugify(unit+' '+t)+'_'+ds+'.txt';
 }
 function copyShareText(btn){
   markUpExport();
@@ -5911,8 +5918,8 @@ function openCalImportModal(){
     <h3>Importera händelser</h3>
     <p style="font-size:13px;color:var(--ink-soft);">Klistra in den krypterade texten (eller välj den som .txt-fil). Händelserna läggs till i din kalender, eller uppdateras om du redan har dem. Inget av ditt eget tas bort.</p>
     <div class="field full">
-      <input type="file" accept=".txt,text/plain" style="margin-bottom:8px;" onchange="(f=>{ if(!f) return; const r=new FileReader(); r.onload=()=>{ document.getElementById('calImpText').value=r.result; }; r.readAsText(f,'UTF-8'); })(this.files[0])">
-      <textarea id="calImpText" rows="9" style="width:100%;font-family:monospace;font-size:12px;border:1px solid var(--line-strong);border-radius:var(--radius);padding:8px;box-sizing:border-box;" placeholder="Klistra in texten här…"></textarea>
+      <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Välj fil (.txt) från Slack eller enheten</label><input type="file" accept=".txt,text/plain" style="margin-bottom:8px;" onchange="(f=>{ if(!f) return; const r=new FileReader(); r.onload=()=>{ document.getElementById('calImpText').value=r.result; }; r.readAsText(f,'UTF-8'); })(this.files[0])">
+      <textarea id="calImpText" rows="9" style="width:100%;font-family:monospace;font-size:12px;border:1px solid var(--line-strong);border-radius:var(--radius);padding:8px;box-sizing:border-box;" placeholder="Välj fil ovan eller klistra in texten här…"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Avbryt</button>
@@ -7077,6 +7084,9 @@ function authBoot(){
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', authBoot); else authBoot();
 
 const APP_CHANGELOG = [
+  {version:'2026-10-30.2', title:'Export som fil', items:[
+    'Slack tillåter inte längre långa meddelanden eller kopiering. Exporten skickas därför som fil: tryck Skicka som fil och skicka filen i Slack som bilaga. Mottagaren trycker Välj fil i importrutan. Kopiera text finns kvar för andra kanaler.'
+  ]},
   {version:'2026-10-30', title:'Blåbandare, vilande och statistik', items:[
     'Blåbandare: välj FMU eller Specialist när du markerar någon som under utbildning. FMU räknar avtalsövningar och får kompetensen FMU automatiskt efter fjärde övningen. En specialist är blåbandare tills GUF markeras. Det finns tre likvärdiga grundutbildningar, GU, FMU och GUF, och en person kan bara ha en. Grad över Menig kräver någon av dem.',
     'Vilande: personer i Avveckling kan markeras som vilande (paus från operativ tjänst). De visas med gul text, räknas inte i statistik och kan inte raderas eller flyttas förrän markeringen tagits bort. Efter tolv månader kommer en notis om avrustning.'
@@ -7151,7 +7161,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v39';
+const SW_CACHE_VERSION = 'personalregister-v40';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
