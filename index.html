@@ -15,6 +15,17 @@
 <style>
   /* Typsnittet ligger i appen — inga anrop till Google Fonts */
   @font-face{font-family:'Allerta Stencil';src:url('AllertaStencil-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap;}
+
+  /* MOBTAB_V1: tabeller ryms i den vita rutan på telefon */
+  @media (max-width:760px){
+    .panel{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    table.full.stats td, table.full.stats th{white-space:normal !important;padding:8px 6px;font-size:12px;overflow-wrap:anywhere;}
+    table.full.stats th{font-size:9px;letter-spacing:0;overflow-wrap:normal;word-break:normal;padding:8px 3px;}
+    table.full.stats td:first-child{font-size:11px;overflow-wrap:break-word !important;}
+    table.full.stats input[type=number]{width:56px;padding:4px 2px;}
+    table.full.stats td:first-child, table.full.stats th:first-child{position:sticky;left:0;background:var(--panel);z-index:1;}
+    table.gradeTable th, table.gradeTable td{padding:6px 6px;font-size:12px;white-space:normal !important;}
+  }
 </style>
 <script src="xlsx.full.min.js"></script>
 <style>
@@ -7127,7 +7138,7 @@ const AUTH_DEFAULT_CO = '452';
 function authCo(){ const r = authRec(); return (r && r.co) || AUTH_DEFAULT_CO; }
 function authUrl(co){ return 'https://raw.githubusercontent.com/Ryberg-hv/Behorighet'+(co||authCo())+'/main/nycklar.json'; }
 function authApi(co){ return 'https://api.github.com/repos/Ryberg-hv/Behorighet'+(co||authCo())+'/contents/nycklar.json'; }
-function authSplit(v){ const n = authNorm(v); if(n.length>=23) return {co:n.slice(0,3), key:n.slice(3)}; return {co:AUTH_DEFAULT_CO, key:n}; }
+function authSplit(v){ const n = authNorm(v); if(n.length>=23) return {co:n.slice(0,3), key:n.slice(3)}; if(n.length===22) return {co:n.slice(0,2), key:n.slice(2)}; return {co:AUTH_DEFAULT_CO, key:n}; }
 const AUTH_ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const AUTH_GRACE_DAYS = 14, AUTH_WARN_DAYS = 11, AUTH_MAX_REVOKE = 5;
 const AUTH_NAME = {grupp:'gruppregister', pluton:'personalregister', tropp:'troppregister', kompani:'kompaniregister'}[APP_KEY];
@@ -7273,6 +7284,10 @@ function authBoot(){
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', authBoot); else authBoot();
 
 const APP_CHANGELOG = [
+  {version:'2026-10-30.8', title:'Telefon och koder', items:[
+    'Tabellerna i Statistik ryms nu i den vita rutan på telefon. Är en tabell ändå för bred rullar den i sidled inuti rutan.',
+    'Nycklar från bataljonen (tvåtecknad kod, till exempel 45) fungerar nu.'
+  ]},
   {version:'2026-10-30.7', title:'Ledningspluton och musikkår', items:[
     'Ledningspluton och musikkår ligger direkt under bataljonen och får därför ingen notis om att rader ska läsas in från kompaniet.'
   ]},
@@ -7365,7 +7380,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v45';
+const SW_CACHE_VERSION = 'personalregister-v46';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
