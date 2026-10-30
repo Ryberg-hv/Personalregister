@@ -7060,7 +7060,7 @@ function structImportAction(){
 function structNotices(){
   const out = [];
   if(!DATA) return out;
-  if(APP_KEY!=='kompani' && !structLocked()){
+  if(APP_KEY!=='kompani' && !structLocked() && !isSpecialPluton()){
     out.push({kind:'strukt', section:'ovrigt', level:'orange', groupName:'Struktur', personName:'',
       text:'Rader och befattningsnummer är inte inlästa från '+STR_BOSS[APP_KEY]+'. Läs in deras senaste export med Importera personal.',
       sortKey:-245000, ackCall:'structImportAction()', ackLabel:'Importera…'});
@@ -7177,11 +7177,11 @@ async function authCheck(){
 }
 async function authWipe(){
   try{
-    Object.keys(localStorage).forEach(k=>{ if(/^(gruppregister|personalregister|troppregister|kompaniregister)[_:]/.test(k)) localStorage.removeItem(k); });
+    Object.keys(localStorage).forEach(k=>{ if(/^(gruppregister|personalregister|troppregister|kompaniregister|bataljonsregister)[_:]/.test(k)) localStorage.removeItem(k); });
   }catch(e){}
   try{ sessionStorage.clear(); }catch(e){}
-  try{ const ks = await caches.keys(); await Promise.all(ks.filter(k=>/^(gruppregister|personalregister|troppregister|kompaniregister)-/.test(k)).map(k=>caches.delete(k))); }catch(e){}
-  try{ const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.filter(r=>/\/(gruppregister|personalregister|troppregister|kompaniregister)\//i.test(r.scope)).map(r=>r.unregister())); }catch(e){}
+  try{ const ks = await caches.keys(); await Promise.all(ks.filter(k=>/^(gruppregister|personalregister|troppregister|kompaniregister|bataljonsregister)-/.test(k)).map(k=>caches.delete(k))); }catch(e){}
+  try{ const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.filter(r=>/\/(gruppregister|personalregister|troppregister|kompaniregister|bataljonsregister)\//i.test(r.scope)).map(r=>r.unregister())); }catch(e){}
   try{ DATA = null; vaultKey = null; currentPin = null; }catch(e){}
 }
 function authGate(html, kind){
@@ -7273,6 +7273,9 @@ function authBoot(){
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', authBoot); else authBoot();
 
 const APP_CHANGELOG = [
+  {version:'2026-10-30.7', title:'Ledningspluton och musikkår', items:[
+    'Ledningspluton och musikkår ligger direkt under bataljonen och får därför ingen notis om att rader ska läsas in från kompaniet.'
+  ]},
   {version:'2026-10-30.6', title:'Ledningspluton', items:[
     'Ny plutontyp vid start: Ledningspluton med grupperna Plutonsledning, Samband, Transport, Försörjning och Stabsskydd (preliminär mall). Import mellan olika plutontyper stoppas.'
   ]},
@@ -7362,7 +7365,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v44';
+const SW_CACHE_VERSION = 'personalregister-v45';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
