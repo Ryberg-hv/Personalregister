@@ -961,7 +961,52 @@ const GRADES = [
 ];
 
 
-const EXERCISE_TYPES = [{key:'SOF',label:'SÖF'},{key:'KFO',label:'KFÖ'}];
+const ALL_EX_TYPES = [{key:'SOF',label:'SÖF'},{key:'KFO',label:'KFÖ'}];
+const EXERCISE_TYPES = ALL_EX_TYPES.slice();
+/* AVTALSDYGN_V8: 8 avtalsdygn = SÖF + KFÖ, 4 avtalsdygn = endast KFÖ (bevakning). Data för båda lagras alltid. */
+function avtalsdygn(){ try{ return (DATA && DATA.avtalsdygn===4) ? 4 : 8; }catch(e){ return 8; } }
+function applyAvtalsdygn(){
+  const want = avtalsdygn()===4 ? [ALL_EX_TYPES[1]] : ALL_EX_TYPES;
+  if(EXERCISE_TYPES.length===want.length && EXERCISE_TYPES.every((t,i)=>t===want[i])) return;
+  EXERCISE_TYPES.length = 0; want.forEach(t=>EXERCISE_TYPES.push(t));
+}
+function exSlash(){ return avtalsdygn()===4 ? 'KFÖ' : 'SÖF/KFÖ'; }
+function exAnd(){ return avtalsdygn()===4 ? 'KFÖ' : 'SÖF och KFÖ'; }
+function exBothDo(){ return avtalsdygn()===4 ? 'KFÖ' : 'både SÖF och KFÖ'; }
+function exBothDone(){ return avtalsdygn()===4 ? 'KFÖ genomförd' : 'både SÖF och KFÖ genomförda'; }
+function exAllDone(){ return avtalsdygn()===4 ? 'övningen genomförd' : 'båda övningarna genomförda'; }
+function openAvtalsdygnModal(first){
+  const cur = avtalsdygn();
+  closeModal();
+  const ov = document.createElement('div'); ov.className = 'overlay'; ov.id = 'dygOverlay';
+  ov.innerHTML = `<div class="modal" style="max-width:500px;">
+    <h3>Avtalsdygn</h3>
+    <p style="font-size:13px;color:var(--ink-soft);">${first
+      ? 'Välj hur många avtalsdygn förbandet har. Valet styr vilka avtalsövningar som registreras. Du kan ändra det senare under <strong>Avtalsdygn</strong> i menyn.'
+      : 'Ändra antal avtalsdygn. <strong>Kontrollera noga</strong> — valet påverkar övningsöversikt, statistik, uppfyllda avtalsår, notiser och blåbandarnas övningar.'}</p>
+    <label style="display:block;margin:10px 0;font-size:14px;"><input type="radio" name="dygVal" value="8" ${cur===8?'checked':''}> <strong>8 avtalsdygn</strong> — SÖF och KFÖ</label>
+    <label style="display:block;margin:10px 0;font-size:14px;"><input type="radio" name="dygVal" value="4" ${cur===4?'checked':''}> <strong>4 avtalsdygn</strong> — endast KFÖ</label>
+    ${first ? '' : `<div class="banner" style="margin:10px 0;font-size:12px;">Export och import fungerar bara mellan register med samma val. Redan registrerad SÖF finns kvar, men visas och räknas inte i läget 4 avtalsdygn.</div>
+    <label style="display:block;margin:10px 0;font-size:13px;"><input type="checkbox" id="dygOk"> Jag förstår konsekvenserna av ändringen</label>`}
+    <div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end;">
+      ${first ? '' : '<button class="btn" onclick="closeModal()">Avbryt</button>'}
+      <button class="btn primary" onclick="saveAvtalsdygn(${first?'true':'false'})">${first?'Spara':'Ändra'}</button>
+    </div></div>`;
+  if(!first) ov.onclick = (ev)=>{ if(ev.target===ov) closeModal(); };
+  document.body.appendChild(ov);
+}
+async function saveAvtalsdygn(first){
+  const el = document.querySelector('input[name="dygVal"]:checked'); if(!el || !DATA) return;
+  const val = el.value==='4' ? 4 : 8;
+  if(!first){
+    if(val===avtalsdygn()){ closeModal(); return; }
+    const ok = document.getElementById('dygOk');
+    if(!ok || !ok.checked){ alert('Kryssa i att du förstår konsekvenserna.'); return; }
+    const yes = await askYesNo('Är du helt säker?', `Du byter från <strong>${avtalsdygn()}</strong> till <strong>${val} avtalsdygn</strong>. ${val===4?'SÖF döljs och uppfyllt avtalsår kräver bara KFÖ.':'SÖF visas igen och uppfyllt avtalsår kräver både SÖF och KFÖ.'} Export och import mot register med det andra valet blir inte möjlig.`, 'Ja, byt till '+val+' avtalsdygn', 'Nej, avbryt');
+    if(!yes) return;
+  }
+  DATA.avtalsdygn = val; applyAvtalsdygn(); saveToDisk(); closeModal(); renderAll();
+}
 
 /* ---------- blåbandare (ny personal under utbildning) ----------
    Personal markerad "Under utbildning" (p.underUtbildning) kallas
@@ -1012,6 +1057,93 @@ const DEFAULT_GROUPS = [
   {id:'g8', name:'Avveckling', kind:'offboarding'},
 ];
 
+
+/* MUSIKKAR_V9: plutontyp Musikkår (preliminär mall, justeras efter kårchefens genomgång) */
+const MUSIK_INSTR = [
+  ['instr_flojt','Flöjt/Piccolo'],['instr_oboe','Oboe'],['instr_fagott','Fagott'],['instr_klarinett','Klarinett'],
+  ['instr_altsax','Altsaxofon'],['instr_tenorsax','Tenorsaxofon'],['instr_barytonsax','Barytonsaxofon'],
+  ['instr_trumpet','Trumpet/Kornett'],['instr_valthorn','Valthorn'],['instr_trombon','Trombon'],
+  ['instr_eufonium','Eufonium/Althorn'],['instr_tuba','Tuba/Bastuba'],['instr_slagverk','Slagverk']
+];
+const MUSIK_COMPS = MUSIK_INSTR.map(([id,label])=>({id,label,expiry:false,showInStats:true}))
+  .concat([{id:'stammoledare',label:'Stämmoledare',expiry:false,showInStats:true}]);
+const MUSIK_GROUPS = [
+  {id:'g1', name:'Stab', kind:'standard', slots: slots(['Kårchef','Stf Kårchef','Dirigent','Trumslagare','Kvartermästare','Notarkivarie','Notarkivarie'])},
+  {id:'g2', name:'Träblås', kind:'standard', slots: slots(Array(23).fill('Musiker'))},
+  {id:'g3', name:'Bleckblås', kind:'standard', slots: slots(Array(23).fill('Musiker'))},
+  {id:'g4', name:'Slagverk', kind:'standard', slots: slots(Array(5).fill('Musiker'))},
+  {id:'g7', name:'Ny personal (rekrytering)', kind:'recruit'},
+  {id:'g8', name:'Avveckling', kind:'offboarding'},
+];
+/* LEDNING_V11: plutontyp Ledningspluton (preliminär mall) */
+const LEDNING_GROUPS = [
+  {id:'g1', name:'Plutonsledning', kind:'standard', slots: slots(['PlutC','Stf PlutC','Stabsbefäl','Stabsbefäl','Stabsbefäl'])},
+  {id:'g2', name:'Samband', kind:'standard', slots: slots(Array(6).fill('Signalist'))},
+  {id:'g3', name:'Transport', kind:'standard', slots: slots(['MC-ordonnans','MC-ordonnans','MC-ordonnans','MC-ordonnans','Fordonsförare','Fordonsförare','Fordonsförare','Fordonsförare'])},
+  {id:'g4', name:'Försörjning', kind:'standard', slots: slots(['Kock','Kock'])},
+  {id:'g5', name:'Stabsskydd', kind:'standard', slots: slots(Array(10).fill('Skyttesoldat'))},
+  {id:'g7', name:'Ny personal (rekrytering)', kind:'recruit'},
+  {id:'g8', name:'Avveckling', kind:'offboarding'},
+];
+const PLUTON_TYP_NAMN = {pluton:'Vanlig pluton', musikkar:'Musikkår', ledning:'Ledningspluton'};
+function plutonTypOf(data){ const d = data===undefined ? DATA : data; return (d && PLUTON_TYP_NAMN[d.plutonTyp]) ? d.plutonTyp : 'pluton'; }
+function isSpecialPluton(data){ return plutonTypOf(data)!=='pluton'; }
+function isMusik(data){ const d = data===undefined ? DATA : data; return !!(d && d.plutonTyp==='musikkar'); }
+function ensureMusikComps(data){
+  const ids = data.competencies.map(c=>c.id);
+  MUSIK_COMPS.forEach(c=>{ if(!ids.includes(c.id)) data.competencies.push({...c}); });
+}
+function openPlutonTypModal(){
+  closeModal();
+  const ov = document.createElement('div'); ov.className = 'overlay'; ov.id = 'typOverlay';
+  ov.innerHTML = `<div class="modal" style="max-width:500px;">
+    <h3>Typ av förband</h3>
+    <p style="font-size:13px;color:var(--ink-soft);">Välj vilken sorts register du skapar. Valet styr vilka grupper och befattningar som läggs upp och kan inte ändras efteråt.</p>
+    <label style="display:block;margin:10px 0;font-size:14px;"><input type="radio" name="typVal" value="pluton" checked> <strong>Vanlig pluton</strong> — chefsgrupp, fyra grupper och personalreserv</label>
+    <label style="display:block;margin:10px 0;font-size:14px;"><input type="radio" name="typVal" value="musikkar"> <strong>Musikkår</strong> — stab, träblås, bleckblås och slagverk (preliminär mall)</label>
+    <label style="display:block;margin:10px 0;font-size:14px;"><input type="radio" name="typVal" value="ledning"> <strong>Ledningspluton</strong> — plutonsledning, samband, transport, försörjning och stabsskydd (preliminär mall)</label>
+    <div class="modal-actions" style="display:flex;justify-content:flex-end;"><button class="btn primary" onclick="savePlutonTyp()">Fortsätt</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+function savePlutonTyp(){
+  const el = document.querySelector('input[name="typVal"]:checked'); if(!el || !DATA) return;
+  if(el.value==='musikkar'){
+    DATA.plutonTyp = 'musikkar';
+    DATA.groups = MUSIK_GROUPS.map(clone);
+    ensureMusikComps(DATA);
+    DATA.persons = [];
+  } else if(el.value==='ledning'){
+    DATA.plutonTyp = 'ledning';
+    DATA.groups = LEDNING_GROUPS.map(clone);
+    DATA.persons = [];
+  } else DATA.plutonTyp = 'pluton';
+  saveToDisk(); closeModal(); renderAll();
+  setTimeout(()=>openAvtalsdygnModal(true),50);
+}
+function personMainInstrument(p){
+  if(!p || !isMusik() || !p.huvudInstr) return '';
+  const c = DATA.competencies.find(c=>c.id===p.huvudInstr);
+  return c ? c.label : '';
+}
+function musikFormHtml(p){
+  if(!isMusik()) return '';
+  const opts = DATA.competencies.filter(c=>c.id.indexOf('instr_')===0).map(c=>`<option value="${c.id}" ${p.huvudInstr===c.id?'selected':''}>${esc(c.label)}</option>`).join('');
+  return `<div style="margin:0 0 14px;padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--radius);">
+    <div class="field" style="margin:0;"><label>Huvudinstrument</label><select id="pf_huvudInstr"><option value="">— inget —</option>${opts}</select></div>
+    <div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Huvudinstrumentet visas vid befattningen. Fler instrument och Stämmoledare markeras som kompetenser på personkortet.</div>
+  </div>`;
+}
+function applySlackHuvudInstr(p, line){
+  const v = line.replace(/^Huvudinstrument:\s*/i,'').trim().toLowerCase();
+  const c = DATA.competencies.find(c=>c.id.indexOf('instr_')===0 && c.label.toLowerCase()===v);
+  if(!c) return;
+  p.huvudInstr = c.id;
+  if(!p.kompetenser) p.kompetenser = {};
+  if(!p.kompetenser[c.id]) p.kompetenser[c.id] = {has:false, utgangsdatum:''};
+  p.kompetenser[c.id].has = true;
+}
+
 /* ---------- state ---------- */
 let DATA = null;
 /* mappval (File System Access) är borttaget — allt sparas i appen */
@@ -1037,6 +1169,7 @@ function ensureCompetencyStatsFlags(list){
 function defaultData(){
   return {
     version:3,
+    avtalsdygn:8,
     title:'Personalregister',
     kompani:'',
     pluton:'',
@@ -1240,7 +1373,7 @@ function ensurePersonShape(p){
   if(!p.ovningar) p.ovningar={};
   YEARS.forEach(y=>{
     if(!p.ovningar[y]) p.ovningar[y]={};
-    EXERCISE_TYPES.forEach(t=>{
+    ALL_EX_TYPES.forEach(t=>{
       const cur = p.ovningar[y][t.key];
       if(cur===undefined){ p.ovningar[y][t.key] = {status:null, anledning:''}; }
       else if(typeof cur === 'boolean'){ p.ovningar[y][t.key] = {status: cur?'narvarande':null, anledning:''}; }
@@ -1296,15 +1429,16 @@ function sanitizeFileBase(name){
 }
 function hydrateData(parsed){
   if(!parsed.groups || !parsed.groups.length){ parsed.groups = DEFAULT_GROUPS.map(clone); }
-  ensureGroups(parsed);
+  if(!isSpecialPluton(parsed)){ ensureGroups(parsed);
   ensureReserveGroup(parsed);
-  ensureBefattningarV2(parsed);
+  ensureBefattningarV2(parsed); }
   if(!parsed.columnOrder){ parsed.columnOrder = FIELD_DEFS.map(f=>f.key); }
   ensureNamePosition(parsed);
   ensureColumnOrderComplete(parsed);
   if(!parsed.competencies || !parsed.competencies.length){ parsed.competencies = DEFAULT_COMPETENCIES.map(c=>({...c})); }
   adoptCustomCompetencies(parsed);
   ensureDefaultCompetencies(parsed);
+  if(parsed.plutonTyp==='musikkar') ensureMusikComps(parsed);
   ensureBandvagnOrder(parsed);
   ensureAdr13Order(parsed);
   ensureKomp2026Order(parsed);
@@ -1316,6 +1450,7 @@ function hydrateData(parsed){
   if(parsed.pluton===undefined) parsed.pluton = '';
   ensureKalAnslag(parsed);
   DATA = parsed;
+  applyAvtalsdygn();
   YEARS = computeYears();
   DATA.persons = (DATA.persons||[]).map(ensurePersonShape);
   migrateFreeformToSlots();
@@ -1371,9 +1506,11 @@ function createLocalRegister(name){
   list.push({key, label:key});
   lsSaveRegistry(list);
   registerList = list;
+  applyAvtalsdygn();
   saveToDisk();
   view = {name:'home'};
   renderAll();
+  setTimeout(()=>openPlutonTypModal(),50);
 }
 
 /* ---- shared: create / switch / delete ---- */
@@ -1600,6 +1737,7 @@ function personSlackDetailLines(p){
   const lines = [];
   if(p.underUtbildning) lines.push(`   Under utbildning: Ja (${traineeType(p)==='spec'?'Specialist':'FMU'}, ${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV} avtalsövningar${p.utbStart&&p.utbStart.ar?', start '+p.utbStart.ar+'-'+String(p.utbStart.man||1).padStart(2,'0'):''})`);
   if(p.vilande) lines.push(`   Vilande: Ja (sedan ${p.vilandeSedan||''})`);
+  if(personMainInstrument(p)) lines.push('   Huvudinstrument: '+personMainInstrument(p));
   if(p.underUtbildning || extList(p).length) lines.push(extExportLine(p));
   lines.push(`   Avtalsår innan ${YEAR_START}: ${p.avtalsarInnanStart||0}`);
   if(p.plutcSedanAr!==undefined && p.plutcSedanAr!==''){
@@ -1708,7 +1846,7 @@ function openExportModal(scope, gid){
    formatting. Instead, any line that isn't recognisable as one of our
    own "Label: value" detail lines is treated as the start of a new
    person. */
-const SLACK_DETAIL_LABEL_RE = /^(Plats|Under utbildning|Vilande|Grundutbildning|Kompetenser|Avtalsövningar\s+\d{4}|Externa övningar|Utvecklingsplan\s+\d{4}|Avtalsår innan\s+\d{4}|Stf PlutC\/PlutC sedan år|Notis från kompaniet)\s*:/i;
+const SLACK_DETAIL_LABEL_RE = /^(Plats|Huvudinstrument|Under utbildning|Vilande|Grundutbildning|Kompetenser|Avtalsövningar\s+\d{4}|Externa övningar|Utvecklingsplan\s+\d{4}|Avtalsår innan\s+\d{4}|Stf PlutC\/PlutC sedan år|Notis från kompaniet)\s*:/i;
 function slackFieldPairs(line){
   /* Matches "Label: value" runs without depending on a specific
      separator character between them (Slack round-trips can turn our
@@ -1735,7 +1873,7 @@ function openSlackImportModal(gid){
   overlay.innerHTML = `<div class="modal" style="max-width:640px;">
     <h3>Importera från Slack — ${esc(g.name)}</h3>
     <p style="color:var(--ink-soft);font-size:13px;margin-bottom:10px;">Klistra in texten från "Exportera → Krypterad text" (krypterad text låses upp med delningskoden), eller välj den som .txt-fil. Personer matchas mot befintlig personal i gruppen via namn och uppdateras. Namn som inte hittas i gruppen tolkas som ny personal och skrivs in på en ledig (tom) plats i gruppen — eller läggs till som en ny rad om gruppen är en fri lista.</p>
-    <p style="color:var(--ink-faint);font-size:11px;margin-bottom:14px;">Avtalsövningar (SÖF/KFÖ) och utvecklingsplan skrivs år för år och uppdaterar bara de år som faktiskt står med i texten — år utan rad rörs inte alls. Kompetenser-raden ersätter hela personens kompetenslista, men om raden helt saknas i texten lämnas kompetenserna orörda.</p>
+    <p style="color:var(--ink-faint);font-size:11px;margin-bottom:14px;">Avtalsövningar (${exSlash()}) och utvecklingsplan skrivs år för år och uppdaterar bara de år som faktiskt står med i texten — år utan rad rörs inte alls. Kompetenser-raden ersätter hela personens kompetenslista, men om raden helt saknas i texten lämnas kompetenserna orörda.</p>
     <div class="field full">
       <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Välj fil (.txt) från Slack eller enheten</label><input type="file" accept=".txt,text/plain" style="margin-bottom:8px;" onchange="(f=>{ if(!f) return; const r=new FileReader(); r.onload=()=>{ document.getElementById('slackImportText').value=r.result; }; r.readAsText(f,'UTF-8'); })(this.files[0])">
       <textarea id="slackImportText" rows="14" style="width:100%;font-family:monospace;font-size:12px;border:1px solid var(--line-strong);border-radius:var(--radius);padding:8px;box-sizing:border-box;" placeholder="Välj fil ovan eller klistra in texten här…"></textarea>
@@ -1874,6 +2012,7 @@ function applySlackLines(p, g, lines, skipBefNr){
   lines.forEach(line=>{
     if(/^Plats:/i.test(line)) return; // hanteras vid placeringen
     if(/^(Under utbildning|Grundutbildning|Vilande):/i.test(line)) applySlackTraining(p, line);
+    else if(/^Huvudinstrument:/i.test(line)) applySlackHuvudInstr(p, line);
     else if(/^Kompetenser:/i.test(line)) applySlackCompetencies(p, line);
     else if(/^Avtalsövningar\s+\d{4}:/i.test(line)) applySlackAvtalOvning(p, line);
     else if(/^Externa övningar:/i.test(line)) applySlackExtOvningar(p, line);
@@ -2614,8 +2753,9 @@ function personCompetencyAbbrs(p){
 function personBefattningDisplay(p){
   const bef = personBefattning(p);
   const abbrs = personCompetencyAbbrs(p);
-  if(!abbrs.length) return bef;
-  return (bef ? bef+' ' : '') + abbrs.join(' ');
+  const instr = personMainInstrument(p);
+  if(!abbrs.length && !instr) return bef;
+  return [bef, instr].concat(abbrs).filter(Boolean).join(' ');
 }
 /* ---------- grade (grad) calculation ---------- */
 function normLabel(s){ return String(s||'').toLowerCase().replace(/[\s\-]/g,''); }
@@ -2662,7 +2802,7 @@ function exerciseCount(p){
     if(!yr) return;
     EXERCISE_TYPES.forEach(t=>{ if(yr[t.key] && yr[t.key].status==='narvarande') n++; });
   });
-  const ext = Array.isArray(p.extOvningar) ? p.extOvningar : [];
+  const ext = (Array.isArray(p.extOvningar) ? p.extOvningar : []).filter(e=>EXERCISE_TYPES.some(t=>t.label===e.typ));
   return n + (st ? ext.filter(e=>((e.ar||0)*100+(e.man||1))>=(st.ar*100+(st.man||1))).length : ext.length);
 }
 
@@ -2685,7 +2825,7 @@ function openExtExerciseModal(pid, eid){
   const p = DATA.persons.find(x=>x.id===pid); if(!p) return;
   const e = eid ? extList(p).find(x=>x.id===eid) : null;
   const now = new Date();
-  const cur = e || {typ:'SÖF', ar:now.getFullYear(), man:now.getMonth()+1, komm:''};
+  const cur = e || {typ:EXERCISE_TYPES[0].label, ar:now.getFullYear(), man:now.getMonth()+1, komm:''};
   closeModal();
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
@@ -2693,7 +2833,7 @@ function openExtExerciseModal(pid, eid){
     <h3>${e?'Redigera övning hos annat förband':'Övning hos annat förband'}</h3>
     <p style="font-size:13px;color:var(--ink-soft);">En avtalsövning som ${esc(fullName(p))} genomfört hos ett annat förband. Den räknas mot de ${GRUNDUTB_KRAV} övningarna. Som chef bekräftar du genom att registrera den.</p>
     <div class="formGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-      <div class="field"><label>Typ</label><select id="ex_typ"><option ${cur.typ==='SÖF'?'selected':''}>SÖF</option><option ${cur.typ==='KFÖ'?'selected':''}>KFÖ</option></select></div>
+      <div class="field"><label>Typ</label><select id="ex_typ">${EXERCISE_TYPES.map(t=>`<option ${cur.typ===t.label?'selected':''}>${t.label}</option>`).join('')}</select></div>
       <div class="field"><label>År</label><input id="ex_ar" type="number" min="2000" max="2100" value="${cur.ar}"></div>
       <div class="field"><label>Månad</label><select id="ex_man">${EXT_MONTHS.map((m,i)=>`<option value="${i+1}" ${cur.man===i+1?'selected':''}>${m}</option>`).join('')}</select></div>
     </div>
@@ -2708,7 +2848,7 @@ function openExtExerciseModal(pid, eid){
 }
 function saveExtExercise(pid, eid){
   const p = DATA.persons.find(x=>x.id===pid); if(!p) return;
-  const typ = document.getElementById('ex_typ').value==='KFÖ' ? 'KFÖ' : 'SÖF';
+  const typ = (document.getElementById('ex_typ').value==='SÖF' && avtalsdygn()===8) ? 'SÖF' : 'KFÖ';
   const ar = parseInt(document.getElementById('ex_ar').value,10);
   const man = parseInt(document.getElementById('ex_man').value,10);
   if(!(ar>=2000 && ar<=2100) || !(man>=1 && man<=12)){ alert('Ange ett giltigt år och en månad.'); return; }
@@ -2848,7 +2988,7 @@ function computeNotices(){
     if(p.fmuNotis){
       notices.push({
         kind:'training', gid:p.groupId, pid:p.id, groupName:gName, personName:fullName(p),
-        text:`Har genomfört ${GRUNDUTB_KRAV} avtalsövningar (SÖF/KFÖ) och är nu grundutbildad (FMU). Kompetensen FMU är markerad.`,
+        text:`Har genomfört ${GRUNDUTB_KRAV} avtalsövningar (${exSlash()}) och är nu grundutbildad (FMU). Kompetensen FMU är markerad.`,
         sortKey:-200000,
         ackCall:`ackTrainingNotice('${p.id}')`
       });
@@ -2998,6 +3138,7 @@ function reserveBanner(){
 function renderTopbar(){
   const titleEl = document.getElementById('titleEl');
   titleEl.textContent = DATA ? DATA.title : 'Personalregister';
+  const eyebrowEl = document.querySelector('#titleWrap .eyebrow'); if(eyebrowEl) eyebrowEl.textContent = isMusik() ? 'MUSIKKÅR' : (plutonTypOf()==='ledning' ? 'LEDNINGSPLUTON' : 'PERSONALREGISTER');
   titleEl.contentEditable = !!DATA;
   titleEl.onblur = ()=>{
     if(!DATA) return;
@@ -3030,10 +3171,12 @@ function renderTopbar(){
   if(DATA){
     html += `<button class="btn small" onclick="goHome()">Startsida</button>`;
     html += `<button class="btn small" onclick="renameRegister()" title="Ge registret ett eget namn">Namnge registret</button>`;
+    html += `<button class="btn small" onclick="openAvtalsdygnModal(false)" title="Välj 4 eller 8 avtalsdygn">Avtalsdygn (${avtalsdygn()})</button>`;
     html += `<button class="btn small danger" onclick="deleteCurrentRegister()" title="Radera registret från den här enheten">Radera registret</button>`;
     html += `<button class="btn small" onclick="goOverview()">Övningsöversikt</button>`;
     html += `<button class="btn small" onclick="goGradOverview()">Grader</button>`;
     html += `<button class="btn small" onclick="goStats()">Statistik</button>`;
+    html += `<button class="btn small" onclick="openStatExport()" title="Exportera summerade siffror till bataljonen">Exportera statistik</button>`;
     html += `<button class="btn small" onclick="openExportModal('all')">Exportera allt</button>`;
     html += `<button class="btn small" onclick="openImportModal()">Importera personal</button>`;
     html += `<button class="btn small" onclick="toggleColumnPanel()">Ordna uppgifter</button>`;
@@ -3077,6 +3220,7 @@ function goGradOverview(){ view={name:'gradoverview'}; renderAll(); }
 
 let lastRenderedViewKey = '';
 function renderAll(){
+  try{ applyAvtalsdygn(); }catch(e){}
   try{ applyAutoGrundutb(); }catch(e){}
   toggleMenu(false);
   const vk = view.name+'|'+(view.gid||'')+'|'+(view.pid||'')+'|'+(view.tab||'');
@@ -3660,7 +3804,7 @@ function openPersonForm(gid, pid, slotIndex){
         <label style="margin-right:14px;"><input type="radio" name="pf_utbTyp" value="fmu" ${curTyp==='fmu'?'checked':''}> FMU (grundutbildning med 4 avtalsövningar)</label>
         <label><input type="radio" name="pf_utbTyp" value="spec" ${curTyp==='spec'?'checked':''}> Specialist (klar när GUF markeras)</label>
       </div>
-      <div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Blåbandare utan grundutbildning kan endast ha graden Menig och visas med blå text. FMU: efter ${GRUNDUTB_KRAV} genomförda avtalsövningar (SÖF/KFÖ) markeras kompetensen FMU automatiskt. Specialist: personen är blåbandare tills kompetensen GUF markeras. Medan personen är blåbandare går det inte att markera grundutbildning på annat sätt.${existing && p.underUtbildning && traineeType(p)==='fmu' ? ` Genomförda hittills: <strong>${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV}</strong>.` : ''}</div>
+      <div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Blåbandare utan grundutbildning kan endast ha graden Menig och visas med blå text. FMU: efter ${GRUNDUTB_KRAV} genomförda avtalsövningar (${exSlash()}) markeras kompetensen FMU automatiskt. Specialist: personen är blåbandare tills kompetensen GUF markeras. Medan personen är blåbandare går det inte att markera grundutbildning på annat sätt.${existing && p.underUtbildning && traineeType(p)==='fmu' ? ` Genomförda hittills: <strong>${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV}</strong>.` : ''}</div>
     </div>`;
   const vilandeHtml = (g.kind==='offboarding') ? `<div style="margin:0 0 14px;padding:10px 12px;border:1px solid #E3C766;background:#FFF9E0;border-radius:var(--radius);">
       <label style="display:flex;align-items:center;gap:8px;font-weight:600;color:#7A5C00;"><input type="checkbox" id="pf_vilande" style="width:16px;height:16px;margin:0;accent-color:#A67C00;" ${p.vilande?'checked':''}> Vilande (paus från operativ tjänst)</label>
@@ -3674,6 +3818,7 @@ function openPersonForm(gid, pid, slotIndex){
     ${infoLine}
     ${trainingHtml}
     ${vilandeHtml}
+    ${musikFormHtml(p)}
     <div class="formgrid">${fieldsHtml}</div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Avbryt</button>
@@ -3722,6 +3867,8 @@ function savePersonForm(existingId, gid, slotIndex){
     if(p.vilande && !was){ const d = new Date(); p.vilandeSedan = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); p.vilandeAck = false; }
     if(!p.vilande){ delete p.vilandeSedan; delete p.vilandeAck; }
   }
+  const hiEl = document.getElementById('pf_huvudInstr');
+  if(hiEl){ if(hiEl.value){ p.huvudInstr = hiEl.value; if(!p.kompetenser) p.kompetenser = {}; if(!p.kompetenser[hiEl.value]) p.kompetenser[hiEl.value] = {has:false, utgangsdatum:''}; p.kompetenser[hiEl.value].has = true; } else delete p.huvudInstr; }
   closeModal();
   saveToDisk();
   view = {name:'group', gid: p.groupId};
@@ -4241,7 +4388,7 @@ function renderOvningar(p){
     ? `<div class="panel" style="margin-bottom:14px;border-left:4px solid #1F5FBF;">
         <div style="font-weight:600;color:#1F5FBF;margin-bottom:6px;">Grundutbildning (blåbandare, ${traineeType(p)==='spec'?'specialist':'FMU'})</div>
         ${traineeType(p)==='spec' ? `<div style="font-size:13px;">Specialist: personen är klar när kompetensen GUF markeras. Avtalsövningar räknas inte mot grundutbildningen.</div>` : ''}
-        <div style="font-size:13px;${traineeType(p)==='spec'?'display:none;':''}">Genomförda avtalsövningar: <strong>${Math.min(done,GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV}</strong> (varje SÖF och KFÖ med Närvarande räknas, även övningar hos andra förband).</div>
+        <div style="font-size:13px;${traineeType(p)==='spec'?'display:none;':''}">Genomförda avtalsövningar: <strong>${Math.min(done,GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV}</strong> (varje ${exAnd()} med Närvarande räknas, även övningar hos andra förband).</div>
         <div style="height:8px;background:#E3ECFA;border-radius:4px;margin-top:8px;overflow:hidden;${traineeType(p)==='spec'?'display:none;':''}"><div style="height:100%;width:${Math.min(100,Math.round(100*done/GRUNDUTB_KRAV))}%;background:#1F5FBF;"></div></div>
         ${extPanelHtml(p)}
         ${(traineeType(p)==='fmu' && done>=GRUNDUTB_KRAV) ? `<p style="margin-top:8px;font-size:12px;color:var(--ink-soft);">Kravet är uppfyllt — FMU markeras automatiskt.</p>` : ''}
@@ -4356,7 +4503,7 @@ function renderOverview(){
   return `
     <div class="crumbs"><a onclick="goHome()">Startsida</a> / Övningsöversikt</div>
     <div class="viewhead">
-      <div><h2>Övningsöversikt</h2><div class="sub">SÖF och KFÖ, ${YEAR_START}–${YEAR_END}. Grönt år = båda övningarna genomförda. Röd kryss = frånvaro (håll muspekaren över för anledning). Personal i rekryteringsgruppen ingår inte, utom blåbandare (blå text). Andel = uppfyllda år (både SÖF och KFÖ genomförda) av de år som har markeringar; år helt utan markeringar räknas inte.</div></div>
+      <div><h2>Övningsöversikt</h2><div class="sub">${exAnd()}, ${YEAR_START}–${YEAR_END}. Grönt år = ${exAllDone()}. Röd kryss = frånvaro (håll muspekaren över för anledning). Personal i rekryteringsgruppen ingår inte, utom blåbandare (blå text). Andel = uppfyllda år (${exBothDone()}) av de år som har markeringar; år helt utan markeringar räknas inte.</div></div>
     </div>
     <div class="ov-wrap">
       <table class="matrix">
@@ -4509,7 +4656,7 @@ function renderContractFulfillment(inPluton){
       <thead><tr><th>År</th><th>Uppfyllt</th><th>Andel</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <p style="margin-top:12px;color:var(--ink-soft);font-size:12px;">Avtalsuppfyllnad = personen har genomfört både SÖF och KFÖ det året. Baseras på personal i grupp 1–6.</p>
+    <p style="margin-top:12px;color:var(--ink-soft);font-size:12px;">Avtalsuppfyllnad = personen har genomfört ${exBothDo()} det året. Baseras på personal i grupp 1–6.</p>
   </div>`;
 }
 
@@ -4927,6 +5074,43 @@ function askShareCodeModal(text){
   });
 }
 /* ---- exportflödet ---- */
+/* STATFIL_V10: statistikfil (summerade värden, inga personer) för bataljonen */
+function statIsReserve(p){ const g = getGroup(p.groupId); return !!(g && (g.kind==='reserve' || g.name==='Personalreserv')); }
+function statPopulation(){ return DATA.persons.filter(p=>{ const k = groupKind(p.groupId); return k!=='recruit' && k!=='offboarding' && !p.vilande; }); }
+function statYearFulfilled(list, y){
+  const ful = list.filter(p=>{ const yr = p.ovningar && p.ovningar[y]; return !!yr && EXERCISE_TYPES.every(t=>yr[t.key] && yr[t.key].status==='narvarande'); }).length;
+  return {y, ful, n:list.length};
+}
+function statValidSkyddsvakt(p){
+  const k = p.kompetenser && p.kompetenser.skyddsvakt;
+  if(!k || !k.has || !k.utgangsdatum) return false;
+  const d = new Date(k.utgangsdatum+'T00:00:00'); if(isNaN(d.getTime())) return false;
+  const now = new Date(); now.setHours(0,0,0,0);
+  return d>=now;
+}
+function statGrund(list){
+  const c = {gu:0, fmu:0, guf:0, saknar:0, blaband:0};
+  list.forEach(p=>{
+    if(isTrainee(p) && !hasGrundutb(p)){ c.saknar++; c.blaband++; return; }
+    const id = grundutbId(p); if(id) c[id]++; else c.saknar++;
+  });
+  return c;
+}
+function statSnapshot(){
+  const list = statPopulation(); const now = new Date(); const yr = now.getFullYear();
+  const typ = APP_KEY==='kompani' ? 'kompani' : APP_KEY==='grupp' ? 'grupp' : ((typeof plutonTypOf==='function') ? plutonTypOf() : 'pluton');
+  const enhet = ({grupp:'Grupp', pluton:'Pluton'+(DATA.pluton?' '+DATA.pluton:''), kompani:'Kompani'+(DATA.kompani?' '+DATA.kompani:'')})[APP_KEY] || APP_KEY;
+  return {v:1, app:APP_KEY, typ, enhet, namn:DATA.title||'', d:now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'),
+    dyg:avtalsdygn(), n:list.length, res:list.filter(statIsReserve).length,
+    avt:[statYearFulfilled(list,yr-1), statYearFulfilled(list,yr)],
+    sv:{ok:list.filter(statValidSkyddsvakt).length, n:list.length}, gu:statGrund(list)};
+}
+function openStatExport(){
+  customShare = {plain:'#PR-STAT1 '+JSON.stringify(statSnapshot()), title:'statistik', kind:'statistik'};
+  closeModal();
+  const ov = document.createElement('div'); ov.className = 'overlay'; ov.innerHTML = '<div class="modal"></div>'; document.body.appendChild(ov);
+  openShareExport('custom');
+}
 let shareExportState = null;
 async function openShareExport(scope, gid){
   let plain, title, kind = scope;
@@ -4941,6 +5125,8 @@ async function openShareExport(scope, gid){
     plain = allGroupsSlackText() + exportExtrasPayload(); title = 'hela registret' + exportExtrasTitle();
   }
   plain = withStructure(plain, scope, gid);
+  if(scope!=='custom' && avtalsdygn()===4) plain = '#PR-DYG1 {"d":4}\n' + plain;
+  if(scope!=='custom' && plutonTypOf()!=='pluton') plain = '#PR-TYP1 {"t":"'+plutonTypOf()+'"}\n' + plain;
   shareExportState = {plain, title, text:null, kind};
   const saved = await getRememberedShareCode();
   const modal = document.querySelector('.overlay .modal');
@@ -4979,7 +5165,7 @@ async function runShareExport(){
   const modal = document.querySelector('.overlay .modal');
   modal.innerHTML = `
     <h3>Klart att skicka</h3>
-    <p style="color:var(--ink-soft);font-size:13px;margin-bottom:10px;">Texten är krypterad (${text.length.toLocaleString('sv-SE')} tecken). Skicka filen i Slack som bilaga; ${shareExportState.kind==='tavla' ? 'mottagaren hämtar filen, väljer <strong>Importera lappar</strong> på anslagstavlan och anger delningskoden. Lapparna sätts upp eller uppdateras — inget tas bort.</p>' : shareExportState.kind==='kalender' ? 'mottagaren hämtar filen, väljer <strong>Importera händelser</strong> i kalendern och anger delningskoden. Händelserna läggs till eller uppdateras — inget tas bort.</p>' : `mottagaren hämtar filen, väljer <strong>Importera från Slack</strong> i gruppen eller <strong>Importera personal → Hela plutonen</strong> och anger delningskoden.</p>`}
+    <p style="color:var(--ink-soft);font-size:13px;margin-bottom:10px;">Texten är krypterad (${text.length.toLocaleString('sv-SE')} tecken). Skicka filen i Slack som bilaga; ${shareExportState.kind==='tavla' ? 'mottagaren hämtar filen, väljer <strong>Importera lappar</strong> på anslagstavlan och anger delningskoden. Lapparna sätts upp eller uppdateras — inget tas bort.</p>' : shareExportState.kind==='statistik' ? 'mottagaren hämtar filen och läser in den i Bataljonsregistret under <strong>Statistik</strong>. Filen innehåller bara summerade siffror, inga personer.</p>' : shareExportState.kind==='kalender' ? 'mottagaren hämtar filen, väljer <strong>Importera händelser</strong> i kalendern och anger delningskoden. Händelserna läggs till eller uppdateras — inget tas bort.</p>' : `mottagaren hämtar filen, väljer <strong>Importera från Slack</strong> i gruppen eller <strong>Importera personal → Hela plutonen</strong> och anger delningskoden.</p>`}
     ${tooLong ? `<div class="banner" style="margin-bottom:10px;">Texten är lång och kan bli för lång för ett Slack-meddelande. Använd <strong>Spara som fil</strong> och skicka filen i Slack i stället — mottagaren kan välja filen i importdialogen.</div>` : ''}
     <textarea readonly style="width:100%;height:140px;font-family:var(--font-mono);font-size:11px;border:1px solid var(--line-strong);border-radius:var(--radius);padding:8px;">${esc(text)}</textarea>
     <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;">
@@ -5943,15 +6129,18 @@ async function calImportGo(){
 
 /* ---------- extradelar i en importerad text ---------- */
 function splitExtras(text){
-  const out = {text:'', cal:null, notes:null, str:null, bad:false};
-  out.text = String(text||'').replace(/^[ \t]*#PR-(KAL1|ANS1|STR1)[ \t]+(.+)$/gm, (m, tag, json)=>{
-    try{ const o = JSON.parse(json); if(tag==='KAL1') out.cal = o; else if(tag==='ANS1') out.notes = o; else out.str = o; }catch(e){ out.bad = true; }
+  const out = {typ:null, dyg:null, text:'', cal:null, notes:null, str:null, bad:false};
+  out.text = String(text||'').replace(/^[ \t]*#PR-(TYP1|DYG1|KAL1|ANS1|STR1)[ \t]+(.+)$/gm, (m, tag, json)=>{
+    try{ const o = JSON.parse(json); if(tag==='TYP1') out.typ = o; else if(tag==='DYG1') out.dyg = o; else if(tag==='KAL1') out.cal = o; else if(tag==='ANS1') out.notes = o; else out.str = o; }catch(e){ out.bad = true; }
     return '';
   });
   return out;
 }
 async function routeImport(text, personsFn, ctxGid){
+  if(/#PR-STAT1\s/.test(text||'')){ closeModal(); setTimeout(()=>alert('Det här är en statistikfil. Den läses in i Bataljonsregistret, inte här.'),50); return; }
   const ex = splitExtras(text);
+  if(/•/.test(ex.text)){ const rt = (ex.typ && PLUTON_TYP_NAMN[ex.typ.t]) ? ex.typ.t : 'pluton'; if(rt!==plutonTypOf()){ closeModal(); setTimeout(()=>alert('Importen stoppades. Filen kommer från ett register av typen '+PLUTON_TYP_NAMN[rt]+', men det här registret är '+PLUTON_TYP_NAMN[plutonTypOf()]+'.'),50); return; } }
+  if(/•/.test(ex.text)){ const rd = (ex.dyg && ex.dyg.d===4) ? 4 : 8; if(rd!==avtalsdygn()){ closeModal(); setTimeout(()=>alert('Importen stoppades. Filen kommer från ett register med '+rd+' avtalsdygn, men det här registret har '+avtalsdygn()+' avtalsdygn. Import mellan 4 och 8 avtalsdygn är inte möjlig.'),50); return; } }
   if(ex.str) handleIncomingStructure(ex.str, ctxGid);
   if(ex.str && !ex.cal && !ex.notes && !/•/.test(ex.text)){ closeModal(); setTimeout(()=>alert('Rader, befattningar och befattningsnummer är inlästa. Exporten innehöll inga personer.'),50); return; }
   if(!ex.cal && !ex.notes){
@@ -7084,6 +7273,18 @@ function authBoot(){
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', authBoot); else authBoot();
 
 const APP_CHANGELOG = [
+  {version:'2026-10-30.6', title:'Ledningspluton', items:[
+    'Ny plutontyp vid start: Ledningspluton med grupperna Plutonsledning, Samband, Transport, Försörjning och Stabsskydd (preliminär mall). Import mellan olika plutontyper stoppas.'
+  ]},
+  {version:'2026-10-30.5', title:'Statistik till bataljonen', items:[
+    'Ny knapp Exportera statistik skapar en krypterad fil med bara summerade siffror (antal personal, personalreserv, avtalsuppfyllnad, skyddsvakt och grundutbildning), inga personer. Filen läses in i Bataljonsregistret.'
+  ]},
+  {version:'2026-10-30.4', title:'Musikkår', items:[
+    'Nytt val när du skapar ett register: Vanlig pluton eller Musikkår. Musikkår får grupperna Stab, Träblås, Bleckblås och Slagverk med lediga platser, instrument som kompetenser och Stämmoledare som markering. Varje person kan ha ett huvudinstrument som visas vid befattningen. Mallen är preliminär och justeras efter kårchefens genomgång. Import mellan Musikkår och Vanlig pluton är inte möjlig.'
+  ]},
+  {version:'2026-10-30.3', title:'Avtalsdygn 4 eller 8', items:[
+    'Nytt val: 4 eller 8 avtalsdygn. Vid 8 avtalsdygn gäller SÖF och KFÖ som tidigare. Vid 4 avtalsdygn (bevakning) finns endast KFÖ: SÖF döljs, uppfyllt avtalsår kräver bara KFÖ och blåbandare räknar KFÖ mot de fyra övningarna. Nya register frågar vid start, befintliga fortsätter med 8. Valet ändras under Avtalsdygn i menyn och kräver bekräftelse. Export och import fungerar bara mellan register med samma val.'
+  ]},
   {version:'2026-10-30.2', title:'Export som fil', items:[
     'Slack tillåter inte längre långa meddelanden eller kopiering. Exporten skickas därför som fil: tryck Skicka som fil och skicka filen i Slack som bilaga. Mottagaren trycker Välj fil i importrutan. Kopiera text finns kvar för andra kanaler.'
   ]},
@@ -7161,7 +7362,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v40';
+const SW_CACHE_VERSION = 'personalregister-v44';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 function maybeShowWhatsNew(){
