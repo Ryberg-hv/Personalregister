@@ -939,6 +939,7 @@ const DEFAULT_COMPETENCIES = [
   {id:'plutc3', label:'PlutC3', expiry:false, showInStats:false},
   {id:'ik1', label:'IK1', expiry:false, showInStats:false},
   {id:'ik2', label:'IK2', expiry:false, showInStats:false},
+  {id:'kompanistridskurs', label:'Kompanistridskurs', expiry:false, showInStats:false},
 ];
 
 /* ---------- grade (grad) ladder ----------
@@ -952,23 +953,24 @@ const DEFAULT_COMPETENCIES = [
 const GRUNDUTB_COMPS = ['GU','FMU','GUF'];
 const GRADES = [
   {label:'Menig',        level:1,  bef:null, minYears:null},
-  /* Grad över Menig kräver någon av grundutbildningarna GU, FMU eller GUF. */
+  /* Grad över Menig kräver någon av grundutbildningarna GU, FMU eller GUF (HV-intro antas uppfyllt). */
   {label:'Menig 1',      level:2,  bef:null, compsAny:GRUNDUTB_COMPS, minYears:null},
   {label:'Menig 2',      level:3,  bef:null, compsAny:GRUNDUTB_COMPS, minYears:2},
   {label:'Menig 3',      level:4,  bef:null, compsAny:GRUNDUTB_COMPS, minYears:5},
   {label:'Menig 4',      level:5,  bef:null, compsAny:GRUNDUTB_COMPS, minYears:8},
-  {label:'Vicekorpral',  level:6,  bef:null, comps:['IK1','Aktiv instruktör'], minYears:null},
-  {label:'Korpral',      level:7,  bef:['Stf GrpC'], comps:['GrpC 1'], minYears:null},
-  {label:'Furir',        level:8,  bef:['GrpC'], comps:['GrpC 1','GrpC 2'], minYears:null},
-  {label:'Överfurir',    level:9,  bef:['GrpC'], comps:['GrpC 1','GrpC 2','IK1','Aktiv instruktör'], minYears:null},
+  /* MASTER_V1: instruktörsgraderna kräver IK1 och IK2 samt tre uppfyllda avtalsår efter grundgraden. Graden behålls även om personen inte instruerar. */
+  {label:'Vicekorpral',  level:6,  bef:null, comps:['IK1','IK2'], minYears:5},
+  {label:'Korpral',      level:7,  bef:['Stf GrpC','GrpC'], comps:['GrpC 1'], minYears:null},
+  /* tre uppfyllda avtalsår i befattningen (från "Stf GrpC/GrpC sedan år"); kravet tillämpas när året är angivet */
+  {label:'Furir',        level:8,  bef:['GrpC'], comps:['GrpC 1','GrpC 2'], minYears:null, yrsBef:{since:'grpc', n:3}},
+  {label:'Överfurir',    level:9,  bef:['GrpC'], comps:['GrpC 1','GrpC 2','IK1','IK2'], minYears:null, yrsBef:{since:'grpc', n:6}},
   {label:'Sergeant',     level:10, bef:['Stf PlutC'], comps:['PlutC1','PlutC2'], minYears:null},
-  {label:'Översergeant', level:11, bef:['Stf PlutC'], comps:['PlutC1','PlutC2','IK1','Aktiv instruktör'], minYears:null},
+  {label:'Översergeant', level:11, bef:['Stf PlutC'], comps:['PlutC1','PlutC2','IK1','IK2'], minYears:null, yrsBef:{since:'plutc', n:3}},
   {label:'Fänrik',       level:12, bef:['PlutC'], comps:['PlutC1','PlutC2'], minYears:null},
-  /* Löjtnant kräver inte totalt uppfyllda avtalsår i karriären, utan
-     specifikt två uppfyllda avtalsår i befattning som Stf PlutC/PlutC —
-     räknas från och med personens "Stf PlutC/PlutC sedan år" (se
-     p.plutcSedanAr, satt via Avtalsövningar-vyn). */
-  {label:'Löjtnant',     level:13, bef:['PlutC'], comps:['PlutC1','PlutC2'], minYears:null, minYearsInBef:2},
+  /* Löjtnant kräver tre uppfyllda avtalsår i befattning som Stf PlutC/PlutC, räknat från "Stf PlutC/PlutC sedan år" (p.plutcSedanAr). */
+  {label:'Löjtnant',     level:13, bef:['PlutC'], comps:['PlutC1','PlutC2'], minYears:null, minYearsInBef:3},
+  /* Fanjunkare: egen gren från Sergeant (kräver Kompanistridskurs), räknas inte som nästa steg efter Löjtnant. */
+  {label:'Fanjunkare',   level:14, bef:['Komp Fanj'], comps:['Kompanistridskurs'], minYears:null, branch:true},
 ];
 
 
@@ -1088,9 +1090,9 @@ const MUSIK_GROUPS = [
 ];
 /* LEDNING_V11: plutontyp Ledningspluton (preliminär mall) */
 const LEDNING_GROUPS = [
-  {id:'g1', name:'Plutonsledning', kind:'standard', slots: slots(['PlutC','Stf PlutC','Stabsbefäl','Stabsbefäl','Stabsbefäl'])},
-  {id:'g2', name:'Samband', kind:'standard', slots: slots(Array(6).fill('Signalist'))},
-  {id:'g3', name:'Transport', kind:'standard', slots: slots(['MC-ordonnans','MC-ordonnans','MC-ordonnans','MC-ordonnans','Fordonsförare','Fordonsförare','Fordonsförare','Fordonsförare'])},
+  {id:'g1', name:'Plutonsledning', kind:'standard', slots: slots(['PlutC','Stf PlutC','Stabsgruppchef','Stabsassistent','Underrättelseassistent'])},
+  {id:'g2', name:'Sambandsgrupp', kind:'standard', slots: slots(['Sambandsgruppchef','Sambands- och datatekniker','Signalist','Signalist','Signalist','Signalist'])},
+  {id:'g3', name:'Transport- och ordonnansgrupp', kind:'standard', slots: slots(['Transport- och ordonnansgruppchef','MC-ordonnans','MC-ordonnans','MC-ordonnans','Förare tung lastbil','Förare tung lastbil','Bussförare','Bussförare'])},
   {id:'g4', name:'Försörjning', kind:'standard', slots: slots(['Kock','Kock'])},
   {id:'g5', name:'Stabsskydd', kind:'standard', slots: slots(Array(10).fill('Skyttesoldat'))},
   {id:'g7', name:'Ny personal (rekrytering)', kind:'recruit'},
@@ -1311,6 +1313,7 @@ function emptyPerson(groupId){
   p.rekrytering = {steg:'intresseanmalan', datum:{kontaktad:'', intervju:''}};
   p.avtalsarInnanStart = 0;
   p.plutcSedanAr = '';
+  p.grpcSedanAr = '';
   p.underUtbildning = false;
   p.grundutbKlar = false;
   return p;
@@ -1397,6 +1400,7 @@ function ensurePersonShape(p){
   if(!p.rekrytering.datum) p.rekrytering.datum = {kontaktad:'', intervju:''};
   if(p.avtalsarInnanStart===undefined) p.avtalsarInnanStart = 0;
   if(p.plutcSedanAr===undefined) p.plutcSedanAr = '';
+  if(p.grpcSedanAr===undefined) p.grpcSedanAr = '';
   if(p.underUtbildning===undefined) p.underUtbildning = false;
   if(p.grundutbKlar===undefined) p.grundutbKlar = false;
   return p;
@@ -1754,6 +1758,9 @@ function personSlackDetailLines(p){
   if(p.plutcSedanAr!==undefined && p.plutcSedanAr!==''){
     lines.push(`   Stf PlutC/PlutC sedan år: ${p.plutcSedanAr}`);
   }
+  if(p.grpcSedanAr!==undefined && p.grpcSedanAr!==''){
+    lines.push(`   Stf GrpC/GrpC sedan år: ${p.grpcSedanAr}`);
+  }
 
   const compsHave = DATA.competencies.filter(c=>p.kompetenser && p.kompetenser[c.id] && p.kompetenser[c.id].has)
     .map(c=>{
@@ -2014,6 +2021,11 @@ function applySlackTraining(p, line){
   else if(/^Vilande:\s*Ja/i.test(line)){ p.vilande = true; const mv = line.match(/(\d{4}-\d{2}-\d{2})/); if(mv) p.vilandeSedan = mv[1]; }
   else if(/^Vilande:\s*Nej/i.test(line)){ p.vilande = false; delete p.vilandeSedan; delete p.vilandeAck; }
 }
+function applySlackGrpcSedanAr(p, line){
+  const m = line.match(/^Stf GrpC\/GrpC sedan år:\s*(-?\d+)/i);
+  if(!m) return;
+  p.grpcSedanAr = parseInt(m[1],10);
+}
 function applySlackPlutcSedanAr(p, line){
   const m = line.match(/^Stf PlutC\/PlutC sedan år:\s*(-?\d+)/i);
   if(!m) return;
@@ -2031,6 +2043,7 @@ function applySlackLines(p, g, lines, skipBefNr){
     else if(/^Avtalsår innan\s+\d{4}:/i.test(line)) applySlackYearsBefore(p, line);
     else if(/^Notis från kompaniet:/i.test(line)) applySlackKompNotis(p, line);
     else if(/^Stf PlutC\/PlutC sedan år:/i.test(line)) applySlackPlutcSedanAr(p, line);
+    else if(/^Stf GrpC\/GrpC sedan år:/i.test(line)) applySlackGrpcSedanAr(p, line);
     else applySlackFieldsLine(p, g, line, skipBefNr);
   });
 }
@@ -2929,6 +2942,13 @@ function nameStrong(p, raw){
     ? `<strong class="trainee" title="${esc(traineeTitle(p))}">${txt}</strong>${noticeDotHtml(p)}`
     : (p.vilande ? `<strong class="dormant" title="Vilande — paus från operativ tjänst">${txt}</strong>${noticeDotHtml(p)}` : `<strong>${txt}</strong>${noticeDotHtml(p)}`);
 }
+/* MASTER_V1: år i befattning. Mjuk regel: tillämpas först när personens "sedan år" är angivet. */
+function befYearsSoft(def, p){
+  if(!def.yrsBef) return null;
+  const sy = def.yrsBef.since==='grpc' ? p.grpcSedanAr : p.plutcSedanAr;
+  if(sy===''||sy==null||isNaN(Number(sy))) return null;
+  return {have:fulfilledContractYearsSince(p, sy), need:def.yrsBef.n};
+}
 function gradeTest(def, p){
   if(isTrainee(p) && !hasGrundutb(p)) return def.level===1; // blåbandare utan grundutbildning kan endast ha graden Menig
   if(def.bef && !personBefIn(p, def.bef)) return false;
@@ -2937,6 +2957,7 @@ function gradeTest(def, p){
   if(def.compsAny && !def.compsAny.some(c=>personHasComp(p,c))) return false;
   if(def.minYears!=null && fulfilledContractYears(p)<def.minYears) return false;
   if(def.minYearsInBef!=null && fulfilledContractYearsSince(p, p.plutcSedanAr)<def.minYearsInBef) return false;
+  { const sb = befYearsSoft(def,p); if(sb && sb.have<sb.need) return false; }
   return true;
 }
 function currentGrade(p){
@@ -2959,6 +2980,11 @@ function missingForGrade(def, p){
     const have = fulfilledContractYears(p);
     if(have<def.minYears) missing.push('Uppfyllda avtalsår: '+have+'/'+def.minYears);
   }
+  if(def.minYearsInBef!=null){
+    if(p.plutcSedanAr===''||p.plutcSedanAr==null) missing.push('Ange "Stf PlutC/PlutC sedan år" (krav: '+def.minYearsInBef+' uppfyllda avtalsår i befattningen)');
+    else { const h = fulfilledContractYearsSince(p, p.plutcSedanAr); if(h<def.minYearsInBef) missing.push('Avtalsår i befattningen: '+h+'/'+def.minYearsInBef); }
+  }
+  { const sb = befYearsSoft(def,p); if(sb && sb.have<sb.need) missing.push('Avtalsår i befattningen: '+sb.have+'/'+sb.need); }
   return missing;
 }
 
@@ -3559,7 +3585,7 @@ function renderGroupStandard(gid){
     const actions = p
       ? rowActionsHtml(p, gid, {canUp: row.idx!==0, canDown: row.idx!==g.slots.length-1,
           upTitle:'Byt till platsen ovanför', downTitle:'Byt till platsen nedanför', otherGroups})
-      : `<button class="btn tiny primary" onclick="openPersonForm('${gid}', null, ${row.idx})" title="Tilldela en person till den lediga platsen">+ Tilldela</button>`;
+      : `<button class="btn tiny primary" onclick="openPersonForm('${gid}', null, ${row.idx})" title="Tilldela en person till den lediga platsen">+ Tilldela</button>${canEditRows(g)?` <button class="btn tiny" onclick="removeSlotRow('${gid}', ${row.idx})" title="Ta bort den tomma raden">Ta bort rad</button>`:''}`;
     return `<tr class="datarow ${p?'':'vacant'}"><td class="actions lead">${actions}</td>${cells}</tr>`;
   }).join('');
 
@@ -3571,6 +3597,7 @@ function renderGroupStandard(gid){
         <div class="sub">${filled}/${g.slots.length} platser fyllda. Befattning och befattningsnummer hör till platsen, inte personen — ${structLocked()?'de är låsta och ändras av din chef':'klicka på dem för att ändra'}. Pilarna byter plats inom gruppen.</div>
       </div>
       <div class="headActions">
+        ${canEditRows(g)?`<button class="btn small" onclick="addSlotRow('${gid}')">+ Lägg till rad</button>`:''}
         <button class="btn small" onclick="toggleColumnPanel()">Ordna kolumner</button>
         <button class="btn small" onclick="openExportModal('group','${gid}')">Exportera</button>
         <button class="btn small" onclick="openSlackImportModal('${gid}')">Importera från Slack</button>
@@ -3663,6 +3690,27 @@ function editGroupNameGroupView(gid){
   const commit = ()=>{ g.name = input.value.trim() || g.name; saveToDisk(); renderAll(); };
   input.onblur = commit;
   input.onkeydown=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); input.blur(); } };
+}
+
+/* ROWS_V1: lägga till och ta bort rader i en vanlig grupp (inte i enheter som läses in från ett annat register och inte när strukturen är låst av chefen) */
+function canEditRows(g){ return !!(g && g.kind==='standard' && !g.unit && !(typeof structLocked==='function' && structLocked())); }
+function addSlotRow(gid){
+  const g = getGroup(gid); if(!g || g.kind!=='standard' || g.unit) return;
+  if(typeof structLocked==='function' && structLocked()){ alert('Rader är låsta och ändras av '+STR_BOSS[APP_KEY]+'.'); return; }
+  const bef = prompt('Befattning för den nya raden. Lämna tomt för en vanlig soldatrad.', 'Soldat');
+  if(bef===null) return;
+  g.slots.push({befattning: bef.trim() || 'Soldat', befattningsnummer:''});
+  saveToDisk(); renderAll();
+}
+function removeSlotRow(gid, idx){
+  const g = getGroup(gid); if(!g || g.kind!=='standard' || g.unit || !g.slots[idx]) return;
+  if(typeof structLocked==='function' && structLocked()){ alert('Rader är låsta och ändras av '+STR_BOSS[APP_KEY]+'.'); return; }
+  if(DATA.persons.some(p=>p.groupId===gid && p.slotIndex===idx)){ alert('Raden är upptagen. Flytta eller ta bort personen först.'); return; }
+  if(g.slots.length<=1){ alert('En grupp måste ha minst en rad.'); return; }
+  if(!confirm('Ta bort rad '+(idx+1)+' ('+(g.slots[idx].befattning||'tom')+')? Det går inte att ångra.')) return;
+  g.slots.splice(idx,1);
+  DATA.persons.forEach(p=>{ if(p.groupId===gid && p.slotIndex!=null && p.slotIndex>idx) p.slotIndex--; });
+  saveToDisk(); renderAll();
 }
 
 /* ---------- editing a fixed slot's befattning / befattningsnummer ---------- */
@@ -4411,7 +4459,10 @@ function renderOvningar(p){
     <p style="margin-top:8px;color:var(--ink-soft);font-size:12px;">Antal avtalsår personen redan uppfyllt innan registret började följa övningar. Räknas med i personens totala uppfyllda avtalsår, som används i statistiken och vid beräkning av vilken grad personen uppfyller.</p>
     <label style="font-weight:600;display:block;margin:14px 0 6px;">Stf PlutC/PlutC sedan år</label>
     <input type="number" step="1" style="width:100px;" placeholder="—" value="${p.plutcSedanAr||''}" onchange="setPlutcSedanAr('${p.id}', this.value)">
-    <p style="margin-top:8px;color:var(--ink-soft);font-size:12px;">Det år personen tillträdde som Stf PlutC eller PlutC (vilket som var först). Används för att räkna ut om kravet på två uppfyllda avtalsår <em>i befattningen</em> Stf PlutC/PlutC är uppfyllt — till skillnad från övriga avtalsårskrav räknas inte totalt uppfyllda avtalsår i karriären, bara år från och med detta år. Krävs för graden Löjtnant.</p>
+    <p style="margin-top:8px;color:var(--ink-soft);font-size:12px;">Det år personen tillträdde som Stf PlutC eller PlutC (vilket som var först). Används för att räkna ut om kravet på tre uppfyllda avtalsår <em>i befattningen</em> Stf PlutC/PlutC är uppfyllt — till skillnad från övriga avtalsårskrav räknas inte totalt uppfyllda avtalsår i karriären, bara år från och med detta år. Krävs för graden Löjtnant och, när året är angivet, för Översergeant.</p>
+    <label style="font-weight:600;display:block;margin:14px 0 6px;">Stf GrpC/GrpC sedan år</label>
+    <input type="number" step="1" style="width:100px;" placeholder="—" value="${p.grpcSedanAr||''}" onchange="setGrpcSedanAr('${p.id}', this.value)">
+    <p style="margin-top:8px;color:var(--ink-soft);font-size:12px;">Det år personen tillträdde som Stf GrpC eller GrpC. Används för kravet på tre uppfyllda avtalsår i befattningen för Furir (sex för Överfurir). Lämnas året tomt kontrolleras inte kravet.</p>
   </div>
   <div class="panel">
     <table class="exercise">
@@ -4426,6 +4477,13 @@ function setAvtalsarInnanStart(pid, val){
   const p = DATA.persons.find(x=>x.id===pid);
   if(!p) return;
   p.avtalsarInnanStart = Math.max(0, parseInt(val,10)||0);
+  saveToDisk(); renderAll();
+}
+function setGrpcSedanAr(pid, val){
+  const p = DATA.persons.find(x=>x.id===pid);
+  if(!p) return;
+  const n = parseInt(val,10);
+  p.grpcSedanAr = (val==='' || isNaN(n)) ? '' : n;
   saveToDisk(); renderAll();
 }
 function setPlutcSedanAr(pid, val){
@@ -4547,7 +4605,7 @@ function renderGradOverview(){
   const rows = people.map(p=>{
     const cur = currentGrade(p);
     const curLevel = cur ? cur.level : 0;
-    const nextDef = GRADES.find(d=>d.level===curLevel+1);
+    const nextDef = GRADES.find(d=>d.level===curLevel+1 && !d.branch);
     let nextCell, missingCell;
     if(nextDef){
       const missing = missingForGrade(nextDef, p);
@@ -5107,12 +5165,15 @@ function statGrund(list){
   });
   return c;
 }
+/* VILANDE_V1: antal vilande personer (alla grupper) */
+function vilCount(){ return (DATA.persons||[]).filter(p=>p.vilande).length; }
 function statSnapshot(){
   const list = statPopulation(); const now = new Date(); const yr = now.getFullYear();
   const typ = APP_KEY==='kompani' ? 'kompani' : APP_KEY==='grupp' ? 'grupp' : ((typeof plutonTypOf==='function') ? plutonTypOf() : 'pluton');
   const enhet = ({grupp:'Grupp', pluton:'Pluton'+(DATA.pluton?' '+DATA.pluton:''), kompani:'Kompani'+(DATA.kompani?' '+DATA.kompani:'')})[APP_KEY] || APP_KEY;
   return {v:1, app:APP_KEY, typ, enhet, namn:DATA.title||'', d:now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'),
     dyg:avtalsdygn(), n:list.length, res:list.filter(statIsReserve).length,
+    vil:vilCount(), /* VILANDE_V1 */
     avt:[statYearFulfilled(list,yr-1), statYearFulfilled(list,yr)],
     sv:{ok:list.filter(statValidSkyddsvakt).length, n:list.length}, gu:statGrund(list)};
 }
@@ -6751,6 +6812,7 @@ function releaseSections(p){
   const ov = [];
   ov.push(['Avtalsår uppfyllda innan '+YEAR_START, String(p.avtalsarInnanStart||0)]);
   if(p.plutcSedanAr) ov.push(['Stf PlutC/PlutC sedan år', String(p.plutcSedanAr)]);
+  if(p.grpcSedanAr) ov.push(['Stf GrpC/GrpC sedan år', String(p.grpcSedanAr)]);
   if(p.underUtbildning) ov.push(['Grundutbildning', 'Under utbildning (blåbandare, '+(traineeType(p)==='spec'?'specialist':'FMU')+')']);
   if(p.vilande) ov.push(['Status', 'Vilande']);
   YEARS.forEach(y=>{
@@ -7284,6 +7346,13 @@ function authBoot(){
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', authBoot); else authBoot();
 
 const APP_CHANGELOG = [
+  {version:'2026-11-01.1', title:'Vilande i statistikfilen', items:[
+    'Statistikfilen till bataljonen innehåller nu antal vilande personer.'
+  ]},
+  {version:'2026-10-31.1', title:'Master och rader', items:[
+    'Graderna följer FM:s master: IK1 och IK2 krävs för instruktörsgraderna, tre år i befattningen för Furir, Överfurir, Översergeant och Löjtnant, och Fanjunkare finns som grad.',
+    'Rader kan läggas till och tas bort.'
+  ]},
   {version:'2026-10-30.8', title:'Telefon och koder', items:[
     'Tabellerna i Statistik ryms nu i den vita rutan på telefon. Är en tabell ändå för bred rullar den i sidled inuti rutan.',
     'Nycklar från bataljonen (tvåtecknad kod, till exempel 45) fungerar nu.'
@@ -7380,10 +7449,13 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v46';
+const SW_CACHE_VERSION = 'personalregister-v48';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
+/* WHATSNEW_OFF: rutan "Nytt i den här versionen" är avstängd tills vidare. Sätt WHATSNEW_ON = true för att slå på den igen. */
+const WHATSNEW_ON = false;
 function maybeShowWhatsNew(){
+  if(!WHATSNEW_ON){ try{ localStorage.setItem(LS_SEEN_VERSION, APP_VERSION); }catch(e){} return; }
   let seen = null;
   try{ seen = localStorage.getItem(LS_SEEN_VERSION); }catch(e){}
   if(seen===APP_VERSION) return;
