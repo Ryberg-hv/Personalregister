@@ -926,8 +926,6 @@ const DEFAULT_COMPETENCIES = [
   {id:'skarpskytt', label:'Skarpskytt', expiry:false, showInStats:true},
   {id:'prickskytt', label:'Prickskytt', expiry:false, showInStats:true},
   {id:'sjukvard', label:'Sjukvård', expiry:false, showInStats:true},
-  {id:'instruktor', label:'Instruktör', expiry:false, showInStats:true},
-  {id:'aktiv_instruktor', label:'Aktiv instruktör', expiry:false, showInStats:true},
   {id:'gu', label:'GU', expiry:false, showInStats:true},
   {id:'guf', label:'GUF', expiry:false, showInStats:true},
   {id:'fmu', label:'FMU', expiry:false, showInStats:true},
@@ -939,6 +937,11 @@ const DEFAULT_COMPETENCIES = [
   {id:'plutc3', label:'PlutC3', expiry:false, showInStats:false},
   {id:'ik1', label:'IK1', expiry:false, showInStats:false},
   {id:'ik2', label:'IK2', expiry:false, showInStats:false},
+  {id:'aktiv_instruktor', label:'Aktiv instruktör', expiry:false, showInStats:true},
+  {id:'kompc1', label:'KompC 1', expiry:false, showInStats:true},
+  {id:'kompc2', label:'KompC 2', expiry:false, showInStats:true},
+  {id:'komp_stri', label:'Komp Stri', expiry:false, showInStats:true},
+  {id:'gu_stabstjanst', label:'GU Stabstjänst', expiry:false, showInStats:true},
   {id:'kompanistridskurs', label:'Kompanistridskurs', expiry:false, showInStats:false},
 ];
 
@@ -1217,11 +1220,25 @@ function adoptCustomCompetencies(data){
     });
   });
 }
+
+/* KOMPETENS_V3: "Instruktör" slås ihop med "Aktiv instruktör" (som flyttas efter IK1/IK2). Körs en gång per register. */
+function ensureInstruktorMerged(data){
+  if(!data || data.instrMergedApplied || !Array.isArray(data.competencies)) return;
+  data.instrMergedApplied = true;
+  (data.persons||[]).forEach(p=>{
+    const k = p.kompetenser; if(!k) return;
+    if(k.instruktor && k.instruktor.has){ if(!k.aktiv_instruktor) k.aktiv_instruktor = {has:false, utgangsdatum:''}; k.aktiv_instruktor.has = true; }
+    delete k.instruktor;
+  });
+  data.competencies = data.competencies.filter(c=>c.id!=='instruktor');
+  placeCompetencyAfter(data.competencies, 'aktiv_instruktor', 'ik2');
+}
 function ensureDefaultCompetencies(data){
   const ids = data.competencies.map(c=>c.id);
   DEFAULT_COMPETENCIES.forEach(dc=>{
     if(!ids.includes(dc.id)) data.competencies.push({...dc});
   });
+  ensureInstruktorMerged(data);
 }
 /* one-time migration: moves "Förarbevis bandvagn" to sit directly after
    "Förarbevis PB8" in the competency list, for registers where it was
@@ -7346,6 +7363,10 @@ function authBoot(){
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', authBoot); else authBoot();
 
 const APP_CHANGELOG = [
+  {version:'2026-11-01.2', title:'Kompetenser', items:[
+    'Kompetensen Instruktör är borttagen. De som hade den har nu Aktiv instruktör, som står efter IK1 och IK2.',
+    'Kompetenserna KompC 1, KompC 2, Komp Stri och GU Stabstjänst finns för plutonchefer som går vidare till kompaniet.'
+  ]},
   {version:'2026-11-01.1', title:'Vilande i statistikfilen', items:[
     'Statistikfilen till bataljonen innehåller nu antal vilande personer.'
   ]},
@@ -7449,7 +7470,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v48';
+const SW_CACHE_VERSION = 'personalregister-v49';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 /* WHATSNEW_OFF: rutan "Nytt i den här versionen" är avstängd tills vidare. Sätt WHATSNEW_ON = true för att slå på den igen. */
