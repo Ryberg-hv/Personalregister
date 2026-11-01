@@ -4744,7 +4744,7 @@ function statGoalRow(key, label, current){
     <td>${esc(label)}</td>
     <td>${current}</td>
     <td><input type="number" min="0" value="${goal!=null?goal:''}" placeholder="—" onchange="setGoal('${key}', this.value)"></td>
-    <td class="${goal==null?'':(reached?'pctgood':'pctneed')}">${goal==null ? '–' : (reached ? 'Målet nått' : need+' behövs')}</td>
+    <td class="${goal==null?'':(reached?'pctgood':'pctneed')}">${goal==null ? '–' : (reached ? ('Målet nått'+(current>goal?' (+'+(current-goal)+' över)':'')) : need+' behövs')}</td>
   </tr>`;
 }
 function setGoal(key, val){
@@ -4754,13 +4754,17 @@ function setGoal(key, val){
 }
 function renderStats(){
   const inPluton = DATA.persons.filter(p=>groupKind(p.groupId)==='standard');
-  const total = inPluton.length;
+  /* ORDRAD_V1: personaluppfyllnad räknas mot förbandets ordinarie rader; personalreserven är bonus och räknas separat */
+  const isResP = p=>{ const g = getGroup(p.groupId); return !!(g && (g.kind==='reserve' || g.name==='Personalreserv')); };
+  const ord = inPluton.filter(p=>!isResP(p));
+  const resCount = DATA.persons.filter(isResP).length;
+  const total = ord.length;
   const isChefBefattning = (b)=>{
     const t = (b||'').trim().toLowerCase();
     return t==='grpc' || t==='stf grpc';
   };
-  const chefCount = inPluton.filter(p=>isChefBefattning(personBefattning(p))).length;
-  const soldatCount = inPluton.filter(p=>{
+  const chefCount = ord.filter(p=>isChefBefattning(personBefattning(p))).length;
+  const soldatCount = ord.filter(p=>{
     const t = (personBefattning(p)||'').trim().toLowerCase();
     return t!=='grpc' && t!=='stf grpc' && t!=='plutc' && t!=='stf plutc';
   }).length;
@@ -4769,6 +4773,7 @@ function renderStats(){
     statGoalRow('personal','Antal personal', total),
     statGoalRow('chef','Antal GrpC (inkl. Stf GrpC)', chefCount),
     statGoalRow('soldat','Antal soldater', soldatCount),
+    `<tr><td>Personalreserv (bonus, ingår inte i raderna)</td><td>${resCount}</td><td>–</td><td>–</td></tr>`,
   ].join('');
 
   const statCompetencies = DATA.competencies.filter(c=>c.showInStats);
@@ -4786,7 +4791,7 @@ function renderStats(){
   return `
     <div class="crumbs"><a onclick="goHome()">Startsida</a> / Statistik</div>
     <div class="viewhead">
-      <div><h2>Plutonens statistik</h2><div class="sub">Baseras på personal i grupp 1–6 (rekrytering och avveckling räknas inte med). Ange ett mål i respektive kategori för att se vad som saknas.</div></div>
+      <div><h2>Plutonens statistik</h2><div class="sub">Antal personal, GrpC och soldater räknas mot förbandets ordinarie rader. Personalreserven är bonus och visas separat; rekrytering och avveckling räknas inte med. Ange ett mål i respektive kategori för att se vad som saknas.</div></div>
     </div>
     <div class="panel" style="margin-bottom:18px;">
       <table class="full stats" style="min-width:0;">
@@ -7439,6 +7444,9 @@ function authBoot(){
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', authBoot); else authBoot();
 
 const APP_CHANGELOG = [
+  {version:'2026-11-01.4', title:'Personaluppfyllnad', items:[
+    'Antal personal, GrpC och soldater räknas nu bara mot förbandets ordinarie rader. Personalreserven visas separat som bonus, så ett förband kan ligga över 100 %.'
+  ]},
   {version:'2026-11-01.3', title:'Avtal och notiser', items:[
     'Avtalsövning hos annat förband: när en övning markeras som närvarande kan du skriva var den genomfördes.',
     'Nya notiser: tre år i rad utan uppfyllt avtal, och blåbandare som närmar sig fem år.',
@@ -7551,7 +7559,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v50';
+const SW_CACHE_VERSION = 'personalregister-v51';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 /* WHATSNEW_OFF: rutan "Nytt i den här versionen" är avstängd tills vidare. Sätt WHATSNEW_ON = true för att slå på den igen. */
