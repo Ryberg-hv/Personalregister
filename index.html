@@ -1308,6 +1308,8 @@ function ensureColumnOrderComplete(data){
 }
 function ensureNotiser(data){
   if(!data.notiser) data.notiser = {expiry:{}, grad:{}};
+  if(!data.notiser.avtal3) data.notiser.avtal3 = {};
+  if(!data.notiser.blaband) data.notiser.blaband = {};
   if(!data.notiser.expiry) data.notiser.expiry = {};
   if(!data.notiser.grad) data.notiser.grad = {};
   if(!Array.isArray(data.notiser.flytt)) data.notiser.flytt = [];
@@ -1763,7 +1765,7 @@ function personSlackFieldsLine(p){
 function ovningStatusText(st){
   if(!st || !st.status) return 'Ej satt';
   if(st.status==='franvarande') return st.anledning ? `Frånvarande (${st.anledning})` : 'Frånvarande';
-  return 'Närvarande';
+  return st.annat ? `Närvarande (annat förband: ${st.annat})` : 'Närvarande';
 }
 function personSlackDetailLines(p){
   const lines = [];
@@ -1777,6 +1779,9 @@ function personSlackDetailLines(p){
   }
   if(p.grpcSedanAr!==undefined && p.grpcSedanAr!==''){
     lines.push(`   Stf GrpC/GrpC sedan år: ${p.grpcSedanAr}`);
+  }
+  if(p.musik && Object.keys(p.musik).length){
+    lines.push('   Musikavtal: '+Object.keys(p.musik).sort().map(y=>{ const m=p.musik[y]; return y+' PS '+(m.ps||0)+', TTM '+(m.ttm||0)+', VP '+(m.vp||0)+', US '+(m.us||0); }).join(' | '));
   }
 
   const compsHave = DATA.competencies.filter(c=>p.kompetenser && p.kompetenser[c.id] && p.kompetenser[c.id].has)
@@ -2003,7 +2008,9 @@ function applySlackAvtalOvning(p, line){
     const t = EXERCISE_TYPES.find(t=>entry.toUpperCase().startsWith(t.label.toUpperCase()+' '));
     if(!t) return;
     let rest = entry.slice(t.label.length).trim();
-    let reason = '';
+    let reason = '', annat = '';
+    const annatMatch = rest.match(/^Närvarande\s*\(annat förband:\s*([^)]*)\)$/i);
+    if(annatMatch){ rest = 'Närvarande'; annat = annatMatch[1].trim(); }
     const reasonMatch = rest.match(/^Frånvarande\s*\(([^)]*)\)$/i);
     if(reasonMatch){ rest = 'Frånvarande'; reason = reasonMatch[1]; }
     let status;
@@ -2012,6 +2019,7 @@ function applySlackAvtalOvning(p, line){
     else status = null; // "Ej satt" eller okänt värde -> lämna som obesvarat
     p.ovningar[year][t.key].status = status;
     p.ovningar[year][t.key].anledning = (status==='franvarande') ? reason : '';
+    p.ovningar[year][t.key].annat = (status==='narvarande') ? annat : '';
   });
 }
 function applySlackPlan(p, line){
@@ -2038,6 +2046,12 @@ function applySlackTraining(p, line){
   else if(/^Vilande:\s*Ja/i.test(line)){ p.vilande = true; const mv = line.match(/(\d{4}-\d{2}-\d{2})/); if(mv) p.vilandeSedan = mv[1]; }
   else if(/^Vilande:\s*Nej/i.test(line)){ p.vilande = false; delete p.vilandeSedan; delete p.vilandeAck; }
 }
+function applySlackMusikAvtal(p, line){
+  const m = line.match(/^Musikavtal:\s*(.*)$/i); if(!m) return;
+  const out = {};
+  m[1].split('|').forEach(sx=>{ const q = sx.trim().match(/^(\d{4}) PS (\d+), TTM (\d+), VP (\d+), US (\d+)$/); if(q) out[q[1]] = {ps:+q[2], ttm:+q[3], vp:+q[4], us:+q[5]}; });
+  p.musik = out;
+}
 function applySlackGrpcSedanAr(p, line){
   const m = line.match(/^Stf GrpC\/GrpC sedan år:\s*(-?\d+)/i);
   if(!m) return;
@@ -2061,6 +2075,7 @@ function applySlackLines(p, g, lines, skipBefNr){
     else if(/^Notis från kompaniet:/i.test(line)) applySlackKompNotis(p, line);
     else if(/^Stf PlutC\/PlutC sedan år:/i.test(line)) applySlackPlutcSedanAr(p, line);
     else if(/^Stf GrpC\/GrpC sedan år:/i.test(line)) applySlackGrpcSedanAr(p, line);
+    else if(/^Musikavtal:/i.test(line)) applySlackMusikAvtal(p, line);
     else applySlackFieldsLine(p, g, line, skipBefNr);
   });
 }
@@ -3069,6 +3084,35 @@ function computeNotices(){
     notices.push({kind:'vilande', gid:p.groupId, pid:p.id, groupName: vg?vg.name:'', personName:fullName(p),
       text:'Har varit vilande i tolv månader. Överväg avrustning.', sortKey:-150000, ackCall:`ackVilandeNotice('${p.id}')`});
   });
+  /* AVTAL3_V1: tre år utan uppfyllt avtal, blåbandare nära fem år (HvH 2018 6.9.2 och 4.2) */
+  DATA.persons.forEach(p=>{
+    if(p.vilande) return;
+    const pg = getGroup(p.groupId); const pk = pg ? pg.kind : '';
+    if(pk==='recruit' || pk==='offboarding') return;
+    if(APP_KEY==='bataljon' && pg && pg.unit) return;
+    const cy = today.getFullYear();
+    if(isTrainee(p) && !hasGrundutb(p)){
+      if(p.utbStart && p.utbStart.ar){
+        const mo = (cy-p.utbStart.ar)*12 + (today.getMonth()+1-(p.utbStart.man||1));
+        const lvl = mo>=60 ? 'red' : (mo>=48 ? 'orange' : '');
+        if(lvl && !DATA.notiser.blaband[p.id+'|'+lvl]){
+          notices.push({kind:'blaband', gid:p.groupId, pid:p.id, level:lvl, groupName: pg?pg.name:'', personName:fullName(p),
+            text: lvl==='red' ? 'Har varit under utbildning i fem år. Enligt handboken avförs personen om grundutbildningen inte är klar.' : 'Har varit under utbildning i över fyra år. Grundutbildningen bör vara klar inom fem år.',
+            sortKey:-160000, ackCall:`ackBlabandNotice('${p.id}','${lvl}')`});
+        }
+      }
+      return;
+    }
+    const ys = [cy-3, cy-2, cy-1];
+    const ea = parseInt(p.anstallningsar,10);
+    if(!isNaN(ea) && ea>ys[0]) return;
+    if(!ys.every(y=>p.ovningar && p.ovningar[y])) return;
+    const none = ys.every(y=>!EXERCISE_TYPES.every(t=>p.ovningar[y][t.key] && p.ovningar[y][t.key].status==='narvarande'));
+    if(!none || DATA.notiser.avtal3[p.id+'|'+cy]) return;
+    notices.push({kind:'avtal3', gid:p.groupId, pid:p.id, level:'red', groupName: pg?pg.name:'', personName:fullName(p),
+      text:'Har inte uppfyllt avtal på tre sammanhängande år ('+ys[0]+'–'+ys[2]+'). Åtgärder: återaktivera i befattningen, annan befattning, förbandsreserv, vilande eller avveckling.',
+      sortKey:-170000, ackCall:`ackAvtal3Notice('${p.id}',${cy})`});
+  });
   DATA.notiser.flytt.forEach(n=>{
     const p = DATA.persons.find(x=>x.id===n.pid);
     if(!p) return;
@@ -3106,6 +3150,8 @@ function ackTrainingNotice(pid){
   p.fmuNotis = false;
   saveToDisk(); renderAll();
 }
+function ackAvtal3Notice(pid, y){ ensureNotiser(DATA); DATA.notiser.avtal3[pid+'|'+y] = true; saveToDisk(); renderAll(); }
+function ackBlabandNotice(pid, lvl){ ensureNotiser(DATA); DATA.notiser.blaband[pid+'|'+lvl] = true; saveToDisk(); renderAll(); }
 function ackVilandeNotice(pid){
   const p = DATA.persons.find(x=>x.id===pid);
   if(!p) return;
@@ -4444,6 +4490,29 @@ function saveCompetencyForm(){
   renderAll();
 }
 
+/* MUSIKAVTAL_V1: hemvärnsmusiker uppfyller avtal med 8 avtalsdygn, varav minst ett pliktspel (HvH 2018 12.14). Pliktspelning och träning = 1/3 dygn, vaktparad och utomlandsspel = 1 dygn. */
+function musikDygn(m){ m = m||{}; const n = k=>Math.max(0, parseInt(m[k],10)||0); return {tot: n('ps')/3 + n('ttm')/3 + n('vp') + n('us'), ps: n('ps')/3 + n('vp') + n('us')}; }
+function musikFulfilled(m){ const d = musikDygn(m); return d.tot>=8-1e-9 && d.ps>=1-1e-9; }
+function musikAvtalHtml(p){
+  const rows = YEARS.map(y=>{
+    const m = (p.musik && p.musik[y]) || {}; const d = musikDygn(m); const ok = musikFulfilled(m);
+    const inp = k=>`<input type="number" min="0" step="1" style="width:64px;" value="${Math.max(0,parseInt(m[k],10)||0)}" onchange="setMusikAvtal('${p.id}',${y},'${k}',this.value)">`;
+    return `<tr class="${ok?'yearOk':''}"><td class="year">${y}</td><td>${inp('ps')}</td><td>${inp('ttm')}</td><td>${inp('vp')}</td><td>${inp('us')}</td><td>${(Math.round(d.tot*100)/100)} dygn${d.ps<1-1e-9 && d.tot>=8-1e-9 ? ' (saknar pliktspel)' : ''}</td><td>${ok?'<span class="pill ok">Uppfyllt</span>':''}</td></tr>`;
+  }).join('');
+  return `<div class="panel" style="margin-bottom:14px;"><div style="font-weight:600;margin-bottom:6px;">Avtal för hemvärnsmusiker</div>
+    <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Uppfyllt avtal är åtta avtalsdygn, varav minst ett pliktspel. Pliktspelning och träningstillfälle räknas som 1/3 dygn, vaktparadspel och utomlandsspel som 1 dygn. Vaktparad och utomlandsspel räknas också som pliktspel, liksom tre pliktspelningar.</p>
+    <table class="exercise"><thead><tr><th>År</th><th>Pliktspelningar</th><th>Träningstillfällen</th><th>Vaktparad</th><th>Utomlandsspel</th><th>Summa</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function setMusikAvtal(pid, y, key, val){
+  const p = DATA.persons.find(x=>x.id===pid); if(!p) return;
+  ensurePersonShape(p);
+  if(!p.musik) p.musik = {};
+  const m = p.musik[y] || (p.musik[y] = {ps:0, ttm:0, vp:0, us:0});
+  m[key] = Math.max(0, parseInt(val,10)||0);
+  const ok = musikFulfilled(m);
+  EXERCISE_TYPES.forEach(t=>{ const c = p.ovningar[y][t.key]; if(ok){ c.status = 'narvarande'; c.anledning = ''; } else if(c.status==='narvarande'){ c.status = null; } });
+  saveToDisk(); renderAll();
+}
 function renderOvningar(p){
   const rows = YEARS.map(y=>{
     const yearOk = EXERCISE_TYPES.every(t=>p.ovningar[y][t.key].status==='narvarande');
@@ -4454,6 +4523,7 @@ function renderOvningar(p){
           <label class="miniCheck"><input type="checkbox" ${st.status==='narvarande'?'checked':''} onchange="toggleExerciseStatus('${p.id}',${y},'${t.key}','narvarande')"> Närvarande</label>
           <label class="miniCheck"><input type="checkbox" ${st.status==='franvarande'?'checked':''} onchange="toggleExerciseStatus('${p.id}',${y},'${t.key}','franvarande')"> Frånvarande</label>
           ${st.status==='franvarande' ? `<input class="reason" type="text" placeholder="Anledning…" value="${esc(st.anledning)}" onblur="setExerciseReason('${p.id}',${y},'${t.key}',this.value)">` : ''}
+          ${st.status==='narvarande' ? `<input class="reason" type="text" placeholder="Hos annat förband (valfritt)…" value="${esc(st.annat||'')}" onblur="setExerciseAnnat('${p.id}',${y},'${t.key}',this.value)">` : ''}
         </div>
       </td>`;
     }).join('');
@@ -4481,7 +4551,8 @@ function renderOvningar(p){
     <input type="number" step="1" style="width:100px;" placeholder="—" value="${p.grpcSedanAr||''}" onchange="setGrpcSedanAr('${p.id}', this.value)">
     <p style="margin-top:8px;color:var(--ink-soft);font-size:12px;">Det år personen tillträdde som Stf GrpC eller GrpC. Används för kravet på tre uppfyllda avtalsår i befattningen för Furir (sex för Överfurir). Lämnas året tomt kontrolleras inte kravet.</p>
   </div>
-  <div class="panel">
+  ${isMusik()?musikAvtalHtml(p):''}
+  <div class="panel" ${isMusik()?'style="display:none"':''}>
     <table class="exercise">
       <thead><tr><th>År</th>${EXERCISE_TYPES.map(t=>`<th>${t.label}</th>`).join('')}</tr></thead>
       <tbody>${rows}</tbody>
@@ -4513,8 +4584,13 @@ function setPlutcSedanAr(pid, val){
 function toggleExerciseStatus(pid, year, typeKey, status){
   const p = DATA.persons.find(x=>x.id===pid);
   const cur = p.ovningar[year][typeKey];
-  if(cur.status===status){ cur.status=null; }
-  else { cur.status=status; if(status==='narvarande') cur.anledning=''; }
+  if(cur.status===status){ cur.status=null; cur.annat=''; }
+  else { cur.status=status; if(status==='narvarande') cur.anledning=''; else cur.annat=''; }
+  saveToDisk(); renderAll();
+}
+function setExerciseAnnat(pid, year, typeKey, val){
+  const p = DATA.persons.find(x=>x.id===pid);
+  p.ovningar[year][typeKey].annat = String(val||'').replace(/[(),|\r\n]+/g,' ').trim().slice(0,120);
   saveToDisk(); renderAll();
 }
 function setExerciseReason(pid, year, typeKey, val){
@@ -4566,7 +4642,7 @@ function renderOverview(){
       return EXERCISE_TYPES.map(t=>{
         const st = p.ovningar[y][t.key];
         let cls='no', sym='—', title='';
-        if(st.status==='narvarande'){ cls='yes'+(yearOk?' yearOk':''); sym='●'; attended++; }
+        if(st.status==='narvarande'){ cls='yes'+(yearOk?' yearOk':''); sym='●'; attended++; if(st.annat){ sym='●*'; title=` title="Hos annat förband: ${esc(st.annat)}"`; } }
         else if(st.status==='franvarande'){ cls='absent'; sym='✕'; title = st.anledning?` title="${esc(st.anledning)}"`:''; }
         return `<td class="${cls}"${title}>${sym}</td>`;
       }).join('');
@@ -6836,7 +6912,7 @@ function releaseSections(p){
     const o = p.ovningar[y] || {};
     const txt = EXERCISE_TYPES.map(t=>{
       const st = o[t.key] || {};
-      const s = st.status==='narvarande' ? 'Närvarande' : st.status==='franvarande' ? 'Frånvarande'+(st.anledning?' ('+st.anledning+')':'') : '—';
+      const s = st.status==='narvarande' ? ('Närvarande'+(st.annat?' (annat förband: '+st.annat+')':'')) : st.status==='franvarande' ? 'Frånvarande'+(st.anledning?' ('+st.anledning+')':'') : '—';
       return t.label+': '+s;
     }).join('   ');
     ov.push([String(y), txt]);
@@ -7363,6 +7439,11 @@ function authBoot(){
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', authBoot); else authBoot();
 
 const APP_CHANGELOG = [
+  {version:'2026-11-01.3', title:'Avtal och notiser', items:[
+    'Avtalsövning hos annat förband: när en övning markeras som närvarande kan du skriva var den genomfördes.',
+    'Nya notiser: tre år i rad utan uppfyllt avtal, och blåbandare som närmar sig fem år.',
+    'Musikkår: avtal för hemvärnsmusiker räknas i avtalsdygn (8 dygn, minst ett pliktspel).'
+  ]},
   {version:'2026-11-01.2', title:'Kompetenser', items:[
     'Kompetensen Instruktör är borttagen. De som hade den har nu Aktiv instruktör, som står efter IK1 och IK2.',
     'Kompetenserna KompC 1, KompC 2, Komp Stri och GU Stabstjänst finns för plutonchefer som går vidare till kompaniet.'
@@ -7470,7 +7551,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v49';
+const SW_CACHE_VERSION = 'personalregister-v50';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 /* WHATSNEW_OFF: rutan "Nytt i den här versionen" är avstängd tills vidare. Sätt WHATSNEW_ON = true för att slå på den igen. */
