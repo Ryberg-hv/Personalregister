@@ -1421,6 +1421,7 @@ function ensurePersonShape(p){
   if(p.plutcSedanAr===undefined) p.plutcSedanAr = '';
   if(p.grpcSedanAr===undefined) p.grpcSedanAr = '';
   if(p.underUtbildning===undefined) p.underUtbildning = false;
+  if(p.underUtbildning && p.utbTyp===undefined) p.utbTyp = 'fmu';
   if(p.grundutbKlar===undefined) p.grundutbKlar = false;
   return p;
 }
@@ -1708,7 +1709,7 @@ function personRowValues(p){
     return p[c.key];
   });
   row.push(p.underUtbildning
-    ? (traineeType(p)==='spec' ? 'Under utbildning (specialist)' : `Under utbildning (${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV})`)
+    ? (!traineeType(p) ? 'Under utbildning (typ ej vald)' : traineeType(p)==='spec' ? 'Under utbildning (specialist)' : `Under utbildning (${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV})`)
     : (hasGrundutb(p) ? grundutbId(p).toUpperCase() : ''));
   DATA.competencies.forEach(c=>{
     const k = p.kompetenser && p.kompetenser[c.id];
@@ -1769,7 +1770,7 @@ function ovningStatusText(st){
 }
 function personSlackDetailLines(p){
   const lines = [];
-  if(p.underUtbildning) lines.push(`   Under utbildning: Ja (${traineeType(p)==='spec'?'Specialist':'FMU'}, ${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV} avtalsövningar${p.utbStart&&p.utbStart.ar?', start '+p.utbStart.ar+'-'+String(p.utbStart.man||1).padStart(2,'0'):''})`);
+  if(p.underUtbildning) lines.push(`   Under utbildning: Ja (${traineeType(p)==='spec'?'Specialist':(traineeType(p)==='fmu'?'FMU':'Typ ej vald')}, ${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV} avtalsövningar${p.utbStart&&p.utbStart.ar?', start '+p.utbStart.ar+'-'+String(p.utbStart.man||1).padStart(2,'0'):''})`);
   if(p.vilande) lines.push(`   Vilande: Ja (sedan ${p.vilandeSedan||''})`);
   if(personMainInstrument(p)) lines.push('   Huvudinstrument: '+personMainInstrument(p));
   if(p.underUtbildning || extList(p).length) lines.push(extExportLine(p));
@@ -2037,7 +2038,7 @@ function applySlackYearsBefore(p, line){
 function applySlackTraining(p, line){
   if(/^Under utbildning:\s*Ja/i.test(line)){
     p.underUtbildning = true; p.grundutbKlar = false;
-    const mt = line.match(/\((FMU|Specialist)/i); p.utbTyp = (mt && /^spec/i.test(mt[1])) ? 'spec' : 'fmu';
+    const mt = line.match(/\((FMU|Specialist)/i); p.utbTyp = mt ? (/^spec/i.test(mt[1]) ? 'spec' : 'fmu') : '';
     const ms = line.match(/start\s+(\d{4})-(\d{2})/i); if(ms) p.utbStart = {ar:parseInt(ms[1],10), man:parseInt(ms[2],10)};
     if(!hasGrundutb(p)) p.grad = 'Menig';
   }
@@ -2940,15 +2941,38 @@ function isTrainee(p){ return !!(p && p.underUtbildning); }
 const GRUNDUTB_IDS = ['gu','fmu','guf'];
 function grundutbId(p){ return GRUNDUTB_IDS.find(id=>p && p.kompetenser && p.kompetenser[id] && p.kompetenser[id].has) || ''; }
 function hasGrundutb(p){ return !!grundutbId(p); }
-function traineeType(p){ return p && p.utbTyp==='spec' ? 'spec' : 'fmu'; }
+function traineeType(p){ return p && p.utbTyp==='spec' ? 'spec' : (p && p.utbTyp==='fmu' ? 'fmu' : ''); }
 function setGrundutb(p, id){ if(!p.kompetenser) p.kompetenser = {}; GRUNDUTB_IDS.forEach(k=>{ if(!p.kompetenser[k]) p.kompetenser[k] = {has:false, utgangsdatum:''}; p.kompetenser[k].has = (k===id); }); }
-function startTrainee(p, typ){ const d = new Date(); p.underUtbildning = true; p.utbTyp = (typ==='spec'?'spec':'fmu'); p.utbStart = {ar:d.getFullYear(), man:d.getMonth()+1}; }
+/* UTBTYP_V1: blåbandare får ingen förvald typ — användaren väljer FMU eller Specialist */
+function openTraineeTypeDialog(pid){
+  const p = DATA.persons.find(x=>x.id===pid); if(!p) return;
+  const overlay = document.createElement('div'); overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="modal" style="max-width:480px;">
+    <h3>Välj utbildningstyp — ${esc(fullName(p))}</h3>
+    <p style="color:var(--ink-soft);font-size:13px;margin-bottom:14px;">Personen är blåbandare. Välj om grundutbildningen är <strong>FMU</strong> (klar efter ${GRUNDUTB_KRAV} avtalsövningar) eller <strong>Specialist</strong> (klar när GUF markeras).</p>
+    <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;gap:8px;">
+      <button class="btn primary" onclick="setTraineeTyp('${pid}','fmu')">FMU</button>
+      <button class="btn primary" onclick="setTraineeTyp('${pid}','spec')">Specialist</button>
+      <button class="btn" onclick="closeModal()">Välj senare</button>
+    </div>
+    <p style="color:var(--ink-faint);font-size:11px;margin-top:10px;">Väljer du senare ligger en notis kvar tills typen är vald.</p>
+  </div>`;
+  overlay.onclick = (e)=>{ if(e.target===overlay) closeModal(); };
+  document.body.appendChild(overlay);
+}
+function setTraineeTyp(pid, typ){
+  const p = DATA.persons.find(x=>x.id===pid); if(!p) return;
+  p.utbTyp = (typ==='spec') ? 'spec' : 'fmu';
+  closeModal(); saveToDisk(); renderAll();
+}
+function startTrainee(p, typ){ const d = new Date(); p.underUtbildning = true; p.utbTyp = (typ==='spec'?'spec':(typ==='fmu'?'fmu':'')); p.utbStart = {ar:d.getFullYear(), man:d.getMonth()+1}; }
 function traineeTitle(p){
+  if(!traineeType(p)) return 'Blåbandare — välj utbildningstyp (FMU eller Specialist)';
   if(traineeType(p)==='spec') return 'Blåbandare — specialist (klar när GUF markeras)';
   return `Blåbandare — FMU (${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV} avtalsövningar)`;
 }
 function traineeTagText(p){
-  return traineeType(p)==='spec' ? 'Blåbandare · specialist' : `Blåbandare · FMU ${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV} avtalsövningar`;
+  return !traineeType(p) ? 'Blåbandare · välj typ' : traineeType(p)==='spec' ? 'Blåbandare · specialist' : `Blåbandare · FMU ${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV} avtalsövningar`;
 }
 /* Automatisk markering: FMU-blåbandare som genomfört kravet får kompetensen FMU, specialister som fått GUF blir klara,
    och gammal markering "Grundutbildning klar" blir kompetensen FMU. */
@@ -3083,6 +3107,14 @@ function computeNotices(){
     const vg = getGroup(p.groupId);
     notices.push({kind:'vilande', gid:p.groupId, pid:p.id, groupName: vg?vg.name:'', personName:fullName(p),
       text:'Har varit vilande i tolv månader. Överväg avrustning.', sortKey:-150000, ackCall:`ackVilandeNotice('${p.id}')`});
+  });
+  /* UTBTYP_V1 */
+  DATA.persons.forEach(p=>{
+    if(!isTrainee(p) || traineeType(p) || p.vilande) return;
+    const pg = getGroup(p.groupId);
+    if(APP_KEY==='bataljon' && pg && pg.unit) return;
+    notices.push({kind:'utbtyp', gid:p.groupId, pid:p.id, level:'orange', groupName: pg?pg.name:'', personName:fullName(p),
+      text:'Blåbandare: välj utbildningstyp, FMU eller Specialist.', sortKey:-150000, ackLabel:'Välj typ', ackCall:`openTraineeTypeDialog('${p.id}')`});
   });
   /* AVTAL3_V1: tre år utan uppfyllt avtal, blåbandare nära fem år (HvH 2018 6.9.2 och 4.2) */
   DATA.persons.forEach(p=>{
@@ -3735,8 +3767,10 @@ function setRecruitStep(pid, val){
   const p = DATA.persons.find(x=>x.id===pid);
   p.rekrytering.steg = val;
   /* steget "Under utbildning" gör personen till blåbandare */
-  if(val==='utbildning' && !hasGrundutb(p) && !p.underUtbildning){ startTrainee(p,'fmu'); p.grad = 'Menig'; }
+  let askTyp = false;
+  if(val==='utbildning' && !hasGrundutb(p) && !p.underUtbildning){ startTrainee(p,''); p.grad = 'Menig'; askTyp = true; }
   saveToDisk(); renderAll();
+  if(askTyp) openTraineeTypeDialog(pid);
 }
 function setRecruitDate(pid, stepKey, val){
   const p = DATA.persons.find(x=>x.id===pid);
@@ -3916,7 +3950,7 @@ function openPersonForm(gid, pid, slotIndex){
   }).join('');
 
   const hasG = !!(existing && hasGrundutb(existing));
-  const curTyp = existing && existing.underUtbildning ? traineeType(existing) : 'fmu';
+  const curTyp = existing && existing.underUtbildning ? traineeType(existing) : '';
   const trainingHtml = `<div style="margin:0 0 14px;padding:10px 12px;border:1px solid #9DB8E6;background:#EEF3FC;border-radius:var(--radius);">
       <div style="display:flex;align-items:center;gap:8px;">
         <input type="checkbox" id="pf_underUtbildning" style="width:16px;height:16px;margin:0;accent-color:#1F5FBF;" ${p.underUtbildning?'checked':''} onchange="onTraineeToggle(this.checked,${hasG})">
@@ -3925,10 +3959,11 @@ function openPersonForm(gid, pid, slotIndex){
       <div id="pf_utbTypWrap" style="display:${p.underUtbildning?'block':'none'};margin-top:8px;font-size:13px;">
         <label style="margin-right:14px;"><input type="radio" name="pf_utbTyp" value="fmu" ${curTyp==='fmu'?'checked':''}> FMU (grundutbildning med 4 avtalsövningar)</label>
         <label><input type="radio" name="pf_utbTyp" value="spec" ${curTyp==='spec'?'checked':''}> Specialist (klar när GUF markeras)</label>
+        <span style="font-size:11px;color:var(--ink-soft);display:block;margin-top:4px;">Välj typ. Tills valet är gjort ligger en notis kvar.</span>
       </div>
       <div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Blåbandare utan grundutbildning kan endast ha graden Menig och visas med blå text. FMU: efter ${GRUNDUTB_KRAV} genomförda avtalsövningar (${exSlash()}) markeras kompetensen FMU automatiskt. Specialist: personen är blåbandare tills kompetensen GUF markeras. Medan personen är blåbandare går det inte att markera grundutbildning på annat sätt.${existing && p.underUtbildning && traineeType(p)==='fmu' ? ` Genomförda hittills: <strong>${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV}</strong>.` : ''}</div>
     </div>`;
-  const vilandeHtml = (g.kind==='offboarding') ? `<div style="margin:0 0 14px;padding:10px 12px;border:1px solid #E3C766;background:#FFF9E0;border-radius:var(--radius);">
+  const vilandeHtml = (g.kind==='offboarding' || g.kind==='reserve' || g.name==='Personalreserv') ? `<div style="margin:0 0 14px;padding:10px 12px;border:1px solid #E3C766;background:#FFF9E0;border-radius:var(--radius);">
       <label style="display:flex;align-items:center;gap:8px;font-weight:600;color:#7A5C00;"><input type="checkbox" id="pf_vilande" style="width:16px;height:16px;margin:0;accent-color:#A67C00;" ${p.vilande?'checked':''}> Vilande (paus från operativ tjänst)</label>
       <div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Vilande personer avslutas inte. De visas med gul text, räknas inte i någon statistik och går inte att radera eller flytta förrän markeringen tagits bort. Efter tolv månader kommer en notis om avrustning.</div>
     </div>` : '';
@@ -3975,7 +4010,7 @@ function savePersonForm(existingId, gid, slotIndex){
   const trainEl = document.getElementById('pf_underUtbildning');
   if(trainEl){
     const wasTrainee = !!p.underUtbildning;
-    const tsel = document.querySelector('input[name="pf_utbTyp"]:checked'); const typ = tsel ? tsel.value : 'fmu';
+    const tsel = document.querySelector('input[name="pf_utbTyp"]:checked'); const typ = tsel ? tsel.value : '';
     if(trainEl.checked){
       if(!wasTrainee) startTrainee(p, typ); else p.utbTyp = typ;
       if(!hasGrundutb(p)) p.grad = 'Menig';
@@ -4444,6 +4479,7 @@ function toggleCompetency(pid, key, checked){
   if(checked && GRUNDUTB_IDS.includes(key)){
     if(isTrainee(p)){
       if(traineeType(p)==='spec' && key==='guf'){ setGrundutb(p,'guf'); p.underUtbildning = false; saveToDisk(); renderAll(); return; }
+      if(!traineeType(p)){ renderAll(); openTraineeTypeDialog(pid); return; }
       alert(traineeType(p)==='spec' ? 'Specialist under utbildning: markera GUF när utbildningen är klar.' : 'FMU-blåbandare: grundutbildningen markeras automatiskt efter '+GRUNDUTB_KRAV+' avtalsövningar. Det går inte att markera den före dess.');
       renderAll(); return;
     }
@@ -4532,10 +4568,11 @@ function renderOvningar(p){
   const done = exerciseCount(p);
   const traineePanel = isTrainee(p)
     ? `<div class="panel" style="margin-bottom:14px;border-left:4px solid #1F5FBF;">
-        <div style="font-weight:600;color:#1F5FBF;margin-bottom:6px;">Grundutbildning (blåbandare, ${traineeType(p)==='spec'?'specialist':'FMU'})</div>
+        <div style="font-weight:600;color:#1F5FBF;margin-bottom:6px;">Grundutbildning (blåbandare, ${traineeType(p)==='spec'?'specialist':(traineeType(p)==='fmu'?'FMU':'typ ej vald')})</div>
+        ${!traineeType(p) ? `<div style="font-size:13px;margin-bottom:6px;">Utbildningstyp är inte vald. <button class="btn tiny" onclick="openTraineeTypeDialog('${p.id}')">Välj FMU eller Specialist</button></div>` : ''}
         ${traineeType(p)==='spec' ? `<div style="font-size:13px;">Specialist: personen är klar när kompetensen GUF markeras. Avtalsövningar räknas inte mot grundutbildningen.</div>` : ''}
-        <div style="font-size:13px;${traineeType(p)==='spec'?'display:none;':''}">Genomförda avtalsövningar: <strong>${Math.min(done,GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV}</strong> (varje ${exAnd()} med Närvarande räknas, även övningar hos andra förband).</div>
-        <div style="height:8px;background:#E3ECFA;border-radius:4px;margin-top:8px;overflow:hidden;${traineeType(p)==='spec'?'display:none;':''}"><div style="height:100%;width:${Math.min(100,Math.round(100*done/GRUNDUTB_KRAV))}%;background:#1F5FBF;"></div></div>
+        <div style="font-size:13px;${traineeType(p)!=='fmu'?'display:none;':''}">Genomförda avtalsövningar: <strong>${Math.min(done,GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV}</strong> (varje ${exAnd()} med Närvarande räknas, även övningar hos andra förband).</div>
+        <div style="height:8px;background:#E3ECFA;border-radius:4px;margin-top:8px;overflow:hidden;${traineeType(p)!=='fmu'?'display:none;':''}"><div style="height:100%;width:${Math.min(100,Math.round(100*done/GRUNDUTB_KRAV))}%;background:#1F5FBF;"></div></div>
         ${extPanelHtml(p)}
         ${(traineeType(p)==='fmu' && done>=GRUNDUTB_KRAV) ? `<p style="margin-top:8px;font-size:12px;color:var(--ink-soft);">Kravet är uppfyllt — FMU markeras automatiskt.</p>` : ''}
       </div>`
@@ -6911,7 +6948,7 @@ function releaseSections(p){
   ov.push(['Avtalsår uppfyllda innan '+YEAR_START, String(p.avtalsarInnanStart||0)]);
   if(p.plutcSedanAr) ov.push(['Stf PlutC/PlutC sedan år', String(p.plutcSedanAr)]);
   if(p.grpcSedanAr) ov.push(['Stf GrpC/GrpC sedan år', String(p.grpcSedanAr)]);
-  if(p.underUtbildning) ov.push(['Grundutbildning', 'Under utbildning (blåbandare, '+(traineeType(p)==='spec'?'specialist':'FMU')+')']);
+  if(p.underUtbildning) ov.push(['Grundutbildning', 'Under utbildning (blåbandare, '+(traineeType(p)==='spec'?'specialist':(traineeType(p)==='fmu'?'FMU':'typ ej vald'))+')']);
   if(p.vilande) ov.push(['Status', 'Vilande']);
   YEARS.forEach(y=>{
     const o = p.ovningar[y] || {};
@@ -7444,6 +7481,10 @@ function authBoot(){
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', authBoot); else authBoot();
 
 const APP_CHANGELOG = [
+  {version:'2026-11-02.1', title:'Blåbandare utan förvald typ och vilande i reserv', items:[
+    'Rekryter som når Under utbildning blir blåbandare utan förvald typ. Du väljer FMU eller Specialist, och en notis ligger kvar tills det är gjort.',
+    'Personal i Personalreserven kan markeras som vilande.'
+  ]},
   {version:'2026-11-01.4', title:'Personaluppfyllnad', items:[
     'Antal personal, GrpC och soldater räknas nu bara mot förbandets ordinarie rader. Personalreserven visas separat som bonus, så ett förband kan ligga över 100 %.'
   ]},
@@ -7559,11 +7600,11 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v51';
+const SW_CACHE_VERSION = 'personalregister-v52';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
-/* WHATSNEW_OFF: rutan "Nytt i den här versionen" är avstängd tills vidare. Sätt WHATSNEW_ON = true för att slå på den igen. */
-const WHATSNEW_ON = false;
+/* WHATSNEW: rutan "Nytt i den här versionen" är påslagen igen (WHATSNEW_ON). */
+const WHATSNEW_ON = true;
 function maybeShowWhatsNew(){
   if(!WHATSNEW_ON){ try{ localStorage.setItem(LS_SEEN_VERSION, APP_VERSION); }catch(e){} return; }
   let seen = null;
