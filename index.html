@@ -3963,7 +3963,7 @@ function openPersonForm(gid, pid, slotIndex){
       </div>
       <div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Blåbandare utan grundutbildning kan endast ha graden Menig och visas med blå text. FMU: efter ${GRUNDUTB_KRAV} genomförda avtalsövningar (${exSlash()}) markeras kompetensen FMU automatiskt. Specialist: personen är blåbandare tills kompetensen GUF markeras. Medan personen är blåbandare går det inte att markera grundutbildning på annat sätt.${existing && p.underUtbildning && traineeType(p)==='fmu' ? ` Genomförda hittills: <strong>${Math.min(exerciseCount(p),GRUNDUTB_KRAV)}/${GRUNDUTB_KRAV}</strong>.` : ''}</div>
     </div>`;
-  const vilandeHtml = (g.kind==='offboarding' || g.kind==='reserve' || g.name==='Personalreserv') ? `<div style="margin:0 0 14px;padding:10px 12px;border:1px solid #E3C766;background:#FFF9E0;border-radius:var(--radius);">
+  const vilandeHtml = (g.kind==='offboarding' || g.kind==='reserve' || g.kind==='recruit' || g.name==='Personalreserv') ? `<div style="margin:0 0 14px;padding:10px 12px;border:1px solid #E3C766;background:#FFF9E0;border-radius:var(--radius);">
       <label style="display:flex;align-items:center;gap:8px;font-weight:600;color:#7A5C00;"><input type="checkbox" id="pf_vilande" style="width:16px;height:16px;margin:0;accent-color:#A67C00;" ${p.vilande?'checked':''}> Vilande (paus från operativ tjänst)</label>
       <div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Vilande personer avslutas inte. De visas med gul text, räknas inte i någon statistik och går inte att radera eller flytta förrän markeringen tagits bort. Efter tolv månader kommer en notis om avrustning.</div>
     </div>` : '';
@@ -7600,7 +7600,7 @@ const APP_CHANGELOG = [
 ];
 const APP_VERSION = APP_CHANGELOG[0].version;
 /* Måste vara samma som VERSION i sw.js. */
-const SW_CACHE_VERSION = 'personalregister-v52';
+const SW_CACHE_VERSION = 'personalregister-v53';
 const LS_SEEN_VERSION = 'personalregister_seen_version';
 var appWasInstalledBefore; // sätts i init(), som körs före den här raden
 /* WHATSNEW: rutan "Nytt i den här versionen" är påslagen igen (WHATSNEW_ON). */
